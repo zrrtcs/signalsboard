@@ -47,4 +47,51 @@ public class Patient
     
     public virtual ICollection<VitalSigns> VitalSigns { get; set; } = new List<VitalSigns>();
     public virtual ICollection<Alert> Alerts { get; set; } = new List<Alert>();
+
+    // Business Logic Methods
+    public bool IsInCriticalCondition()
+    {
+        return this.Status.Equals("critical", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public VitalSigns? GetLatestVitals()
+    {
+        return this.VitalSigns?.OrderByDescending(v => v.RecordedAt).FirstOrDefault();
+    }
+
+    public AlertSeverity CalculateRiskLevel()
+    {
+        var latestVitals = this.GetLatestVitals();
+        if (latestVitals == null)
+            return AlertSeverity.Low;
+
+        // Critical patient status overrides vital signs
+        if (this.IsInCriticalCondition())
+            return AlertSeverity.High;
+
+        // Check for multiple critical vital signs
+        var criticalCount = 0;
+        
+        if (latestVitals.HeartRate.HasValue)
+        {
+            var hrSeverity = latestVitals.AssessHeartRateAlert();
+            if (hrSeverity == AlertSeverity.Critical) criticalCount++;
+        }
+        
+        if (latestVitals.SpO2.HasValue)
+        {
+            var spo2Severity = latestVitals.AssessSpO2Alert();
+            if (spo2Severity == AlertSeverity.Critical) criticalCount++;
+        }
+        
+        if (latestVitals.BpSystolic.HasValue && latestVitals.BpDiastolic.HasValue)
+        {
+            var bpSeverity = latestVitals.AssessBloodPressureAlert();
+            if (bpSeverity == AlertSeverity.Critical) criticalCount++;
+        }
+
+        return criticalCount >= 2 ? AlertSeverity.High : 
+               criticalCount == 1 ? AlertSeverity.Medium : 
+               AlertSeverity.Low;
+    }
 }

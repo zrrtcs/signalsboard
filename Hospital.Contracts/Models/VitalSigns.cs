@@ -41,4 +41,75 @@ public class VitalSigns
     // Navigation properties
     [ForeignKey("PatientId")]
     public virtual Patient Patient { get; set; } = null!;
+
+    // Business Logic Methods
+    public AlertSeverity AssessHeartRateAlert()
+    {
+        if (!this.HeartRate.HasValue) return AlertSeverity.Low;
+        
+        return this.HeartRate.Value switch
+        {
+            <= 45 or >= 130 => AlertSeverity.Critical,
+            <= 55 or >= 110 => AlertSeverity.Medium,
+            _ => AlertSeverity.Low
+        };
+    }
+
+    public AlertSeverity AssessSpO2Alert()
+    {
+        if (!this.SpO2.HasValue) return AlertSeverity.Low;
+        
+        return this.SpO2.Value switch
+        {
+            < 88 => AlertSeverity.Critical,
+            < 92 => AlertSeverity.High,
+            < 94 => AlertSeverity.Medium,
+            _ => AlertSeverity.Low
+        };
+    }
+
+    public AlertSeverity AssessBloodPressureAlert()
+    {
+        if (!this.BpSystolic.HasValue || !this.BpDiastolic.HasValue) return AlertSeverity.Low;
+        
+        // Check for hypertensive crisis
+        if (this.BpSystolic >= 180 || this.BpDiastolic >= 110)
+            return AlertSeverity.Critical;
+            
+        // Stage 2 hypertension
+        if (this.BpSystolic >= 160 || this.BpDiastolic >= 100)
+            return AlertSeverity.High;
+            
+        // Stage 1 hypertension
+        if (this.BpSystolic >= 140 || this.BpDiastolic >= 90)
+            return AlertSeverity.Medium;
+            
+        return AlertSeverity.Low;
+    }
+
+    public bool IsValid()
+    {
+        // Check for medically impossible values
+        if (this.HeartRate.HasValue && (this.HeartRate <= 0 || this.HeartRate > 300))
+            return false;
+            
+        if (this.SpO2.HasValue && (this.SpO2 <= 0 || this.SpO2 > 100))
+            return false;
+            
+        if (this.BpSystolic.HasValue && (this.BpSystolic <= 0 || this.BpSystolic > 300))
+            return false;
+            
+        if (this.BpDiastolic.HasValue && (this.BpDiastolic <= 0 || this.BpDiastolic > 200))
+            return false;
+            
+        if (this.Temperature.HasValue && (this.Temperature < 30 || this.Temperature > 45))
+            return false;
+            
+        return true;
+    }
+
+    public bool IsStale(TimeSpan threshold)
+    {
+        return DateTime.UtcNow - this.RecordedAt > threshold;
+    }
 }
