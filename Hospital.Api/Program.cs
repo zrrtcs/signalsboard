@@ -1,4 +1,14 @@
+using Microsoft.EntityFrameworkCore;
+using Hospital.Api.Data;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Add PostgreSQL Database
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? "Host=localhost;Database=signalsboard;Username=postgres;Password=postgres";
+
+builder.Services.AddDbContext<HospitalDbContext>(options =>
+    options.UseNpgsql(connectionString));
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
