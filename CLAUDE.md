@@ -264,16 +264,16 @@ This project follows **Git Flow** branching strategy for professional developmen
 
 ### Branch Structure
 - **`master`** - Production-ready code only
-- **`develop`** - Main development branch, integration point
-- **`feature/*`** - Feature branches from develop
+- **`dev`** - Main development branch, integration point
+- **`feature/*`** - Feature branches from dev
 - **`hotfix/*`** - Emergency fixes from master
-- **`release/*`** - Release preparation from develop
+- **`release/*`** - Release preparation from dev
 
 ### Development Process
 ```bash
 # 1. Start new feature
-git checkout develop
-git pull origin develop
+git checkout dev
+git pull origin dev
 git checkout -b feature/patient-dashboard
 
 # 2. Work on feature with conventional commits
@@ -284,20 +284,20 @@ git commit -m "docs: update API documentation for patient endpoints"
 
 # 3. Push feature and create PR
 git push -u origin feature/patient-dashboard
-# Create PR: feature/patient-dashboard → develop
+# Create PR: feature/patient-dashboard → dev
 
-# 4. After PR approval, merge to develop
-git checkout develop
-git pull origin develop
+# 4. After PR approval, merge to dev
+git checkout dev
+git pull origin dev
 git branch -d feature/patient-dashboard
 
 # 5. Release process
-git checkout -b release/v1.0.0 develop
+git checkout -b release/v1.0.0 dev
 # Final testing, version bumps, changelog
 git checkout master
 git merge release/v1.0.0
 git tag v1.0.0
-git checkout develop
+git checkout dev
 git merge release/v1.0.0
 ```
 
