@@ -57,7 +57,7 @@ public class CriticalAlertsIntegrationTests : IAsyncLifetime
         var bed = new Bed { Id = "ICU-1-BED-1", Number = "1", WardId = "ICU-1", Status = "occupied" };
         var patient = new Patient
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.NewGuid().ToString(),
             Name = "John Critical",
             Mrn = "MRN-CRITICAL-001",
             BedId = "ICU-1-BED-1",
@@ -73,7 +73,7 @@ public class CriticalAlertsIntegrationTests : IAsyncLifetime
         var criticalVitals = new VitalSigns
         {
             Id = Guid.NewGuid().ToString(),
-            PatientId = patient.Id.ToString(),
+            PatientId = patient.Id,
             HeartRate = 180, // CRITICAL: Normal is 60-100, this could indicate cardiac emergency
             BpSystolic = 120,
             BpDiastolic = 80,
@@ -94,7 +94,7 @@ public class CriticalAlertsIntegrationTests : IAsyncLifetime
             .ToListAsync();
 
         Assert.Single(alerts);
-        Assert.Equal(AlertSeverity.Critical, alerts[0].Severity);
+        Assert.Equal(AlertSeverity.Critical.ToString(), alerts[0].Severity);
         Assert.Contains("Heart Rate", alerts[0].Message);
     }
 
@@ -106,7 +106,7 @@ public class CriticalAlertsIntegrationTests : IAsyncLifetime
         var bed = new Bed { Id = "ER-1-BED-5", Number = "5", WardId = "ER-1", Status = "occupied" };
         var patient = new Patient
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.NewGuid().ToString(),
             Name = "Sarah Hypoxic",
             Mrn = "MRN-EMERGENCY-002",
             BedId = "ER-1-BED-5",
@@ -122,7 +122,7 @@ public class CriticalAlertsIntegrationTests : IAsyncLifetime
         var hypoxicVitals = new VitalSigns
         {
             Id = Guid.NewGuid().ToString(),
-            PatientId = patient.Id.ToString(),
+            PatientId = patient.Id,
             HeartRate = 95,
             BpSystolic = 110,
             BpDiastolic = 70,
@@ -157,7 +157,7 @@ public class CriticalAlertsIntegrationTests : IAsyncLifetime
         var bed = new Bed { Id = "MED-1-BED-12", Number = "12", WardId = "MED-1", Status = "occupied" };
         var patient = new Patient
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.NewGuid().ToString(),
             Name = "Robert Deteriorating",
             Mrn = "MRN-MEDICAL-003",
             BedId = "MED-1-BED-12",
@@ -173,7 +173,7 @@ public class CriticalAlertsIntegrationTests : IAsyncLifetime
         var deterioratingVitals = new VitalSigns
         {
             Id = Guid.NewGuid().ToString(),
-            PatientId = patient.Id.ToString(),
+            PatientId = patient.Id,
             HeartRate = 115, // Elevated (normal: 60-100)
             BpSystolic = 165, // High (normal: <140)
             BpDiastolic = 95, // High (normal: <90)
