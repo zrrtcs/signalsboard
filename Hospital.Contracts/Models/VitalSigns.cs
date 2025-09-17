@@ -112,4 +112,15 @@ public class VitalSigns
     {
         return DateTime.UtcNow - this.RecordedAt > threshold;
     }
+
+    public AlertSeverity CalculateAlertSeverity()
+    {
+        var hrAlert = this.AssessHeartRateAlert();
+        var spo2Alert = this.AssessSpO2Alert();
+        var bpAlert = this.AssessBloodPressureAlert();
+
+        // Return the highest severity among all vital signs
+        var maxSeverity = new[] { hrAlert, spo2Alert, bpAlert }.Max();
+        return maxSeverity;
+    }
 }
