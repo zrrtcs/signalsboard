@@ -24,14 +24,15 @@ Production-ready demo: **Hospital Patient-Care Dashboard** with **realtime Signa
 * **Why**: Pages is static; SignalR needs a backend → decouple UI from API.
 
 ```
-hospital-display/
-├─ src/
-│  ├─ Api/                 # ASP.NET Core + SignalR
-│  └─ Web/                 # React + Vite (static)
-├─ packages/
-│  └─ ts-contracts/        # generated TS client/types
-├─ .github/workflows/      # CI + Pages
-└─ Hospital.sln
+Signalsboard/
+├─ Hospital.Api/           # ASP.NET Core + SignalR + EF Core 9
+├─ Hospital.Contracts/     # EF Entities + Business Logic
+├─ Hospital.Clients/
+│  └─ hospital-web/       # React + Vite + TypeScript
+├─ Hospital.Api.Tests/    # xUnit Tests + Business Logic Validation
+├─ .notebook/             # Technical Documentation
+├─ docker-compose.yml     # PostgreSQL + API orchestration
+└─ Signalsboard.sln       # Multi-project solution
 ```
 
 > Alternative (choice B): single ASP.NET app serving `.cshtml` or SPA and hosting SignalR in one deployable. Simpler for SignalR, no Pages.
@@ -51,18 +52,27 @@ hospital-display/
 
 ---
 
-## Tech
+## Tech Stack
 
-* React + Vite + TypeScript
-* State: Zustand
-* Router: React Router
-* Styling: Tailwind
-* Charts: Recharts
-* **Realtime: SignalR client**; REST fallback (Axios)
-* Testing: Vitest + React Testing Library
-* Lint/Format: ESLint + Prettier
-* Docker: API + Web
-* CI: GitHub Actions (build, test, deploy)
+### Backend (.NET 8)
+* **ASP.NET Core** - Minimal API with health checks
+* **Entity Framework Core 9** - PostgreSQL with hybrid seeding
+* **SignalR** - Real-time WebSocket communication
+* **xUnit** - Business logic testing with medical scenarios
+* **PostgreSQL 17** - Production database with time-series optimization
+
+### Frontend (Planned)
+* **React + Vite + TypeScript** - Modern development stack
+* **Redux Toolkit (RTK)** - Predictable state management with real-time updates
+* **Tailwind CSS** - Styling and responsive design
+* **Recharts** - Vital signs visualization
+* **SignalR Client** - Real-time dashboard updates
+
+### DevOps & Infrastructure
+* **Docker + PostgreSQL** - Containerized development environment
+* **Environment-based configuration** - Secure secret management
+* **Health check endpoints** - Container orchestration support
+* **GitHub Actions** - CI/CD pipeline (planned)
 
 ---
 
@@ -155,15 +165,29 @@ Backend (`src/Api/appsettings.json`):
 
 4. **Web**
 
-* Zustand store with shape:
+* Redux store with RTK slices + RTK Query:
 
 ```ts
-{ wards: Ward[]; currentWardId?: string;
-  patients: Record<string,Patient>;
-  alertsOnly: boolean;
-  thresholds: { hr:{hi,lo}, spo2:{lo}, bpSys:{hi}, bpDia:{hi} };
-  kiosk: { rotate: boolean; intervalSec: number };
-  connection: { online: boolean; lastHeartbeat?: string }; }
+// Server state via RTK Query
+const hospitalApi = createApi({
+  baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
+  tagTypes: ['Ward', 'Patient', 'VitalSigns', 'Alert'],
+  endpoints: (builder) => ({
+    getWards: builder.query<Ward[], void>(),
+    getPatients: builder.query<Patient[], string>(),
+    getPatientTrend: builder.query<TrendPoint[], {id: string, minutes: number}>(),
+  })
+});
+
+// Client state via RTK slices
+interface RootState {
+  ui: { currentWardId?: string; alertsOnly: boolean };
+  settings: {
+    thresholds: { hr:{hi,lo}, spo2:{lo}, bpSys:{hi}, bpDia:{hi} };
+    kiosk: { rotate: boolean; intervalSec: number };
+  };
+  signalr: { online: boolean; lastHeartbeat?: string };
+}
 ```
 
 * Components: `AppShell`, `WardSelector`, `PatientGrid`, `PatientRow`, `AlertBadge`, `Sparkline`, `PatientBannerRotator`, `VitalsChart`, `SettingsDrawer`, `ConnectionStatus`, `ErrorBoundary`.
@@ -231,6 +255,90 @@ If hosting Web on Pages:
 * Enable Pages in repo settings.
 * Use `pages.yml` to build and publish `/src/Web/dist`.
 * Point env vars to Azure API.
+
+---
+
+## Git Workflow
+
+This project follows **Git Flow** branching strategy for professional development:
+
+### Branch Structure
+- **`master`** - Production-ready code only
+- **`develop`** - Main development branch, integration point
+- **`feature/*`** - Feature branches from develop
+- **`hotfix/*`** - Emergency fixes from master
+- **`release/*`** - Release preparation from develop
+
+### Development Process
+```bash
+# 1. Start new feature
+git checkout develop
+git pull origin develop
+git checkout -b feature/patient-dashboard
+
+# 2. Work on feature with conventional commits
+git add .
+git commit -m "feat: add patient vital signs display"
+git commit -m "test: add unit tests for vital signs validation"
+git commit -m "docs: update API documentation for patient endpoints"
+
+# 3. Push feature and create PR
+git push -u origin feature/patient-dashboard
+# Create PR: feature/patient-dashboard → develop
+
+# 4. After PR approval, merge to develop
+git checkout develop
+git pull origin develop
+git branch -d feature/patient-dashboard
+
+# 5. Release process
+git checkout -b release/v1.0.0 develop
+# Final testing, version bumps, changelog
+git checkout master
+git merge release/v1.0.0
+git tag v1.0.0
+git checkout develop
+git merge release/v1.0.0
+```
+
+### Commit Message Convention
+Follow **Conventional Commits** for automated changelog generation:
+
+- **feat:** new feature for users
+- **fix:** bug fix for users
+- **docs:** documentation changes
+- **test:** adding/updating tests
+- **refactor:** code changes that neither fix bugs nor add features
+- **perf:** performance improvements
+- **chore:** maintenance tasks, dependency updates
+
+### Required Checks
+All branches must pass:
+- ✅ Unit tests (`dotnet test`)
+- ✅ Build verification (`dotnet build`)
+- ✅ Linting/formatting checks
+- ✅ Docker build success
+- ✅ Code review approval
+
+**⚠️ IMPORTANT: Never commit directly to `master`. Always use feature branches and PRs.**
+
+---
+
+## Technical Documentation
+
+For comprehensive technical details, see the `.notebook/` directory:
+
+* **[Technical Overview](.notebook/README.md)** - Complete architecture documentation, technology stack, and development workflow
+* **[Database Schema](.notebook/erd.md)** - Entity relationship design, medical domain modeling, and performance considerations
+* **[Security & Secrets](.notebook/security-secrets.md)** - Production secret management, Azure Key Vault, Docker Secrets, and compliance practices
+* **[Deployment Strategies](.notebook/production-deployment.md)** - Zero-downtime deployments, Blue-Green patterns, EF migrations, and emergency procedures
+
+The `.notebook/` contains enterprise-grade documentation covering:
+- Database design with medical alert thresholds
+- Production deployment strategies for healthcare environments
+- Security practices for sensitive patient data
+- Performance optimization for real-time monitoring
+- Emergency procedures and rollback strategies
 
 ---
 
