@@ -58,7 +58,8 @@ Signalsboard/
 * **ASP.NET Core** - Minimal API with health checks
 * **Entity Framework Core 9** - PostgreSQL with hybrid seeding
 * **SignalR** - Real-time WebSocket communication
-* **xUnit** - Business logic testing with medical scenarios
+
+* **xUnit + Integration Testing** - Comprehensive medical safety testing with Testcontainers
 * **PostgreSQL 17** - Production database with time-series optimization
 
 ### Frontend (Planned)
@@ -330,8 +331,10 @@ For comprehensive technical details, see the `.notebook/` directory:
 
 * **[Technical Overview](.notebook/README.md)** - Complete architecture documentation, technology stack, and development workflow
 * **[Database Schema](.notebook/erd.md)** - Entity relationship design, medical domain modeling, and performance considerations
+* **[Testing Strategy](.notebook/testing-strategy.md)** - Medical safety testing, integration tests, and critical alert validation
 * **[Security & Secrets](.notebook/security-secrets.md)** - Production secret management, Azure Key Vault, Docker Secrets, and compliance practices
 * **[Deployment Strategies](.notebook/production-deployment.md)** - Zero-downtime deployments, Blue-Green patterns, EF migrations, and emergency procedures
+* **[Progress Log](.notebook/progress-log.md)** - Development session tracking and accomplishments
 
 The `.notebook/` contains enterprise-grade documentation covering:
 - Database design with medical alert thresholds
