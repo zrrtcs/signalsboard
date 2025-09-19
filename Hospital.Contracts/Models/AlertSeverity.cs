@@ -1,4 +1,4 @@
-namespace Hospital.Contracts.Models;
+namespace Signalsboard.Hospital.Contracts.Models;
 
 public enum AlertSeverity
 {

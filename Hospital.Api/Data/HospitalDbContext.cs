@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Hospital.Contracts.Models;
+using Signalsboard.Hospital.Contracts.Models;
 
-namespace Hospital.Api.Data;
+namespace Signalsboard.Hospital.Api.Data;
 
 public class HospitalDbContext : DbContext
 {

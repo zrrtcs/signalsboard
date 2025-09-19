@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Hospital.Api.Data;
-using Hospital.Contracts.Models;
+using Signalsboard.Hospital.Api.Data;
+using Signalsboard.Hospital.Contracts.Models;
 using Testcontainers.PostgreSql;
 using Xunit;
 
-namespace Hospital.Api.Tests.Integration;
+namespace Signalsboard.Hospital.Api.Tests.Integration;
 
 public class CriticalAlertsIntegrationTests : IAsyncLifetime
 {

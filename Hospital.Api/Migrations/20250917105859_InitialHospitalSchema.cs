@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Hospital.Api.Migrations
+namespace Signalsboard.Hospital.Api.Migrations
 {
     /// <inheritdoc />
     public partial class InitialHospitalSchema : Migration

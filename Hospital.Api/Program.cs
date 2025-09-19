@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Hospital.Api.Data;
+using Signalsboard.Hospital.Api.Data;
+using Signalsboard.Hospital.Contracts.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,47 +40,57 @@ using (var scope = app.Services.CreateScope())
     context.Database.Migrate();
 
     // Development-only sample data seeding
-    // TODO: Implement SeedDevelopmentData method for:
-    // - Sample wards (ICU, Emergency, General Medicine, Pediatrics)
-    // - Mock patients with realistic names and MRNs
-    // - Generated vital signs with varying severities for dashboard testing
-    // - Alert scenarios (critical HR, low SpO2, high BP) for UI validation
-    // - Staff assignments across different shifts and roles
-    // - Bed occupancy patterns for realistic ward visualization
-    // if (app.Environment.IsDevelopment())
-    // {
-    //     await SeedDevelopmentData(context);
-    // }
+    // TODO: Move to separate SeedData service
 }
 
-var summaries = new[]
+// Hospital API Endpoints
+app.MapGet("/api/wards", async (HospitalDbContext db) =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
+    var wards = await db.Wards
+        .OrderBy(w => w.Name)
+        .ToListAsync();
+    return Results.Ok(wards);
 })
-.WithName("GetW  1. Installing EF CLI tools globally\n  2. Adding PostgreSQL packages to Hospital.Api\n  3. Creating the EF entities in Hospital.ContractseatherForecast")
+.WithName("GetWards")
+.WithOpenApi();
+
+app.MapGet("/api/patients", async (HospitalDbContext db, string? wardId = null) =>
+{
+    var query = db.Patients.AsQueryable();
+
+    if (!string.IsNullOrEmpty(wardId))
+    {
+        query = query.Where(p => p.Bed != null && p.Bed.WardId == wardId);
+    }
+
+    var patients = await query
+        .Include(p => p.Bed)
+        .ThenInclude(b => b!.Ward)
+        .Include(p => p.VitalSigns.OrderByDescending(v => v.RecordedAt).Take(1))
+        .OrderBy(p => p.Name)
+        .ToListAsync();
+
+    return Results.Ok(patients);
+})
+.WithName("GetPatients")
+.WithOpenApi();
+
+app.MapGet("/api/patients/{id}/trend", async (HospitalDbContext db, string id, int minutes = 240) =>
+{
+    var trends = await db.VitalSigns
+        .Where(v => v.PatientId == id &&
+                   v.RecordedAt >= DateTime.UtcNow.AddMinutes(-minutes))
+        .OrderBy(v => v.RecordedAt)
+        .ToListAsync();
+
+    return Results.Ok(trends);
+})
+.WithName("GetPatientTrend")
 .WithOpenApi();
 
 app.MapHealthChecks("/health");
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
 
 // Make Program accessible for integration testing
 public partial class Program { }

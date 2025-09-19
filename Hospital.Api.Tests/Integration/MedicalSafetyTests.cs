@@ -1,7 +1,7 @@
-using Hospital.Contracts.Models;
+using Signalsboard.Hospital.Contracts.Models;
 using Xunit;
 
-namespace Hospital.Api.Tests.Integration;
+namespace Signalsboard.Hospital.Api.Tests.Integration;
 
 public class MedicalSafetyTests
 {

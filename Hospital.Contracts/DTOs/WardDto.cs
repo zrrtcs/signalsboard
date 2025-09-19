@@ -1,4 +1,4 @@
-namespace Hospital.Contracts.DTOs;
+namespace Signalsboard.Hospital.Contracts.DTOs;
 
 public class WardDto
 {
