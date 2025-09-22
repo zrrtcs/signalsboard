@@ -1,4 +1,4 @@
-using Signalsboard.Hospital.Contracts.Models;
+using Signalsboard.Hospital.Api.Domain;
 using Xunit;
 
 namespace Signalsboard.Hospital.Api.Tests.Integration;

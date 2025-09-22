@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Signalsboard.Hospital.Api.Data;
-using Signalsboard.Hospital.Contracts.Models;
+using Signalsboard.Hospital.Api.Domain;
 using Testcontainers.PostgreSql;
 using Xunit;
 

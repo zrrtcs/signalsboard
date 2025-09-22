@@ -323,6 +323,11 @@ All branches must pass:
 
 **⚠️ IMPORTANT: Never commit directly to `master`. Always use feature branches and PRs.**
 
+**🔄 "git good" Command**: When user says "git good", follow proper Git Flow strategy:
+- Commit current changes with conventional commit messages
+- Use appropriate branching (feature/*, hotfix/*, release/*)
+- Be professionally concise with commit messages or workflow, you are not a marketer.
+
 ---
 
 ## Technical Documentation

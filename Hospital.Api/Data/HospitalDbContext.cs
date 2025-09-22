@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Signalsboard.Hospital.Contracts.Models;
+using Signalsboard.Hospital.Api.Domain;
 
 namespace Signalsboard.Hospital.Api.Data;
 

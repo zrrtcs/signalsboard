@@ -1,4 +1,4 @@
-namespace Signalsboard.Hospital.Contracts.Models;
+namespace Signalsboard.Hospital.Api.Domain;
 
 public enum AlertSeverity
 {

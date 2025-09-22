@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Signalsboard.Hospital.Api.Data;
-using Signalsboard.Hospital.Contracts.Models;
+using Signalsboard.Hospital.Api.Domain;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -25,7 +25,7 @@ namespace Signalsboard.Hospital.Api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Hospital.Contracts.Models.Alert", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.Alert", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(50)
@@ -82,7 +82,7 @@ namespace Signalsboard.Hospital.Api.Migrations
                     b.ToTable("alerts");
                 });
 
-            modelBuilder.Entity("Hospital.Contracts.Models.Bed", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.Bed", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(50)
@@ -120,7 +120,7 @@ namespace Signalsboard.Hospital.Api.Migrations
                     b.ToTable("beds");
                 });
 
-            modelBuilder.Entity("Hospital.Contracts.Models.Patient", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.Patient", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(50)
@@ -175,7 +175,7 @@ namespace Signalsboard.Hospital.Api.Migrations
                     b.ToTable("patients");
                 });
 
-            modelBuilder.Entity("Hospital.Contracts.Models.Staff", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.Staff", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(50)
@@ -216,7 +216,7 @@ namespace Signalsboard.Hospital.Api.Migrations
                     b.ToTable("staff");
                 });
 
-            modelBuilder.Entity("Hospital.Contracts.Models.VitalSigns", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.VitalSigns", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(50)
@@ -267,7 +267,7 @@ namespace Signalsboard.Hospital.Api.Migrations
                     b.ToTable("vital_signs");
                 });
 
-            modelBuilder.Entity("Hospital.Contracts.Models.Ward", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.Ward", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(50)
@@ -294,9 +294,9 @@ namespace Signalsboard.Hospital.Api.Migrations
                     b.ToTable("wards");
                 });
 
-            modelBuilder.Entity("Hospital.Contracts.Models.Alert", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.Alert", b =>
                 {
-                    b.HasOne("Hospital.Contracts.Models.Patient", "Patient")
+                    b.HasOne("Hospital.Api.Domain.Patient", "Patient")
                         .WithMany("Alerts")
                         .HasForeignKey("PatientId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -305,9 +305,9 @@ namespace Signalsboard.Hospital.Api.Migrations
                     b.Navigation("Patient");
                 });
 
-            modelBuilder.Entity("Hospital.Contracts.Models.Bed", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.Bed", b =>
                 {
-                    b.HasOne("Hospital.Contracts.Models.Ward", "Ward")
+                    b.HasOne("Hospital.Api.Domain.Ward", "Ward")
                         .WithMany("Beds")
                         .HasForeignKey("WardId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -316,19 +316,19 @@ namespace Signalsboard.Hospital.Api.Migrations
                     b.Navigation("Ward");
                 });
 
-            modelBuilder.Entity("Hospital.Contracts.Models.Patient", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.Patient", b =>
                 {
-                    b.HasOne("Hospital.Contracts.Models.Bed", "Bed")
+                    b.HasOne("Hospital.Api.Domain.Bed", "Bed")
                         .WithOne("Patient")
-                        .HasForeignKey("Hospital.Contracts.Models.Patient", "BedId")
+                        .HasForeignKey("Hospital.Api.Domain.Patient", "BedId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Bed");
                 });
 
-            modelBuilder.Entity("Hospital.Contracts.Models.Staff", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.Staff", b =>
                 {
-                    b.HasOne("Hospital.Contracts.Models.Ward", "Ward")
+                    b.HasOne("Hospital.Api.Domain.Ward", "Ward")
                         .WithMany("Staff")
                         .HasForeignKey("WardId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -336,9 +336,9 @@ namespace Signalsboard.Hospital.Api.Migrations
                     b.Navigation("Ward");
                 });
 
-            modelBuilder.Entity("Hospital.Contracts.Models.VitalSigns", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.VitalSigns", b =>
                 {
-                    b.HasOne("Hospital.Contracts.Models.Patient", "Patient")
+                    b.HasOne("Hospital.Api.Domain.Patient", "Patient")
                         .WithMany("VitalSigns")
                         .HasForeignKey("PatientId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -347,19 +347,19 @@ namespace Signalsboard.Hospital.Api.Migrations
                     b.Navigation("Patient");
                 });
 
-            modelBuilder.Entity("Hospital.Contracts.Models.Bed", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.Bed", b =>
                 {
                     b.Navigation("Patient");
                 });
 
-            modelBuilder.Entity("Hospital.Contracts.Models.Patient", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.Patient", b =>
                 {
                     b.Navigation("Alerts");
 
                     b.Navigation("VitalSigns");
                 });
 
-            modelBuilder.Entity("Hospital.Contracts.Models.Ward", b =>
+            modelBuilder.Entity("Hospital.Api.Domain.Ward", b =>
                 {
                     b.Navigation("Beds");
 

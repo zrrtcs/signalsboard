@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Signalsboard.Hospital.Contracts.Models;
+namespace Signalsboard.Hospital.Api.Domain;
 
 [Table("wards")]
 public class Ward

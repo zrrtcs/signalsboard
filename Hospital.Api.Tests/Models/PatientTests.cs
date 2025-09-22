@@ -1,4 +1,4 @@
-using Signalsboard.Hospital.Contracts.Models;
+using Signalsboard.Hospital.Api.Domain;
 using Xunit;
 
 namespace Signalsboard.Hospital.Api.Tests.Models;
@@ -43,7 +43,7 @@ public class PatientTests
             // Arrange
             var patient = new Patient
             {
-                VitalSigns = new List<Hospital.Contracts.Models.VitalSigns>
+                VitalSigns = new List<Hospital.Api.Domain.VitalSigns>
                 {
                     new() { RecordedAt = DateTime.UtcNow.AddHours(-2), HeartRate = 70 },
                     new() { RecordedAt = DateTime.UtcNow.AddHours(-1), HeartRate = 85 },
@@ -62,7 +62,7 @@ public class PatientTests
         [Fact]
         public void Should_Return_Null_When_No_Vitals_Exist()
         {
-            var patient = new Patient { VitalSigns = new List<Hospital.Contracts.Models.VitalSigns>() };
+            var patient = new Patient { VitalSigns = new List<Hospital.Api.Domain.VitalSigns>() };
             
             var latest = patient.GetLatestVitals();
             
@@ -79,7 +79,7 @@ public class PatientTests
             var patient = new Patient
             {
                 Status = "critical",
-                VitalSigns = new List<Hospital.Contracts.Models.VitalSigns>
+                VitalSigns = new List<Hospital.Api.Domain.VitalSigns>
                 {
                     new() 
                     { 
@@ -104,7 +104,7 @@ public class PatientTests
             var patient = new Patient
             {
                 Status = "stable",
-                VitalSigns = new List<Hospital.Contracts.Models.VitalSigns>
+                VitalSigns = new List<Hospital.Api.Domain.VitalSigns>
                 {
                     new() 
                     { 
