@@ -1,0 +1,45 @@
+@startuml
+title Signalsboard.Hospital.Simulation — Akka.NET (Actor Model, Swimlanes)
+
+|Host / Timer|
+start
+:Load VitalsOptions & services;
+:Build ActorSystem;
+:Query patientIds (cap MaxBeds);
+
+|Coordinator (Actor)|
+:Spawn PatientActor[i];
+:Send Warmup(from=Now-10m,to=Now) to PatientActor[i];
+
+|PatientActor[i]|
+:Generate historical samples via Next();
+:Tell VitalGenerated(sample) -> Coordinator;
+
+|Coordinator (Actor)|
+:Aggregate warmup (optional);
+
+|Host / Timer|
+repeat
+:PeriodicTimer tick (Interval) -> Tell Tick(now) to Coordinator;
+repeat while (app running)
+
+|Coordinator (Actor)|
+:Fan-out Tick to all PatientActor[i];
+
+|PatientActor[i]|
+:Next(patientId, now);
+:Tell VitalGenerated(sample) -> Coordinator;
+
+|Coordinator (Actor)|
+:Collect into batch;
+if (batch >= patientCount or window elapsed?) then (flush)
+  |BroadcasterActor|
+  :Tell VitalBatchGenerated(batch, at);
+  |SignalR Broadcaster (Service)|
+  :Buffer.Add(each sample);
+  :Map to DTO; hub.Clients.All.PushVitals(dto);
+endif
+
+|Host / Timer|
+stop
+@enduml

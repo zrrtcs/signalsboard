@@ -39,12 +39,24 @@
 - Created technical documentation in .notebook/
 - **Commit**: "docs: complete integration testing documentation"
 
-### Session End
-- **Branch**: `feature/integration-tests`
-- **Status**: All tests passing, documentation complete, ready for merge
-- **Commits**: 4 phases properly committed
-- **Note**: No GitHub origin set up yet
-- **Next**: Merge to dev, create GitHub repo, README for portfolio
+### Architecture Review Complete (Thu Sep 19 05:18:23 PM +08 2025)
+- Focus on: DTOs, proper entity separation, time-series indexing
+- API smoke tests over complex integration tests
+- Mock signal architecture discussion (complex but valuable)
+
+### Namespace Refactoring Complete (Thu Sep 19 05:18:23 PM +08 2025)
+- **Completed**: All Hospital.* → Signalsboard.Hospital.* across 17 files
+- **Commit**: "refactor: update namespaces to Signalsboard.Hospital.*" (0ee508f)
+- **Current Branch**: dev
+
+### Domain Entity Separation Complete (Tue Sep 23 06:33:54 AM +08 2025)
+- **Completed**: Moved all entities from Hospital.Contracts/Models to Hospital.Api/Domain
+- **Commit**: "refactor: move domain entities from Contracts to Api.Domain" (f81fe3c)
+- **Next**: Time-series index migration, DTOs, API smoke tests
+
+### Session Pause - Context Management
+- **Status**: Domain separation complete, ready for time-series optimization
+- **Current Branch**: dev
 
 ---
 

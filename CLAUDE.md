@@ -1,7 +1,3 @@
-Noted. Here’s a drop-in **README.md** you can paste into Claude Code to scaffold the repo.
-
----
-
 # hospital-display
 
 Production-ready demo: **Hospital Patient-Care Dashboard** with **realtime SignalR** updates and React UI. Optimized for a wall/TV display.
@@ -26,11 +22,13 @@ Production-ready demo: **Hospital Patient-Care Dashboard** with **realtime Signa
 ```
 Signalsboard/
 ├─ Hospital.Api/           # ASP.NET Core + SignalR + EF Core 9
-├─ Hospital.Contracts/     # EF Entities + Business Logic
+│  └─ Domain/             # Domain Entities + Business Logic
+├─ Hospital.Api.Contracts/ # DTOs and API Contracts
+│  └─ DTOs/
 ├─ Hospital.Clients/
-│  └─ hospital-web/       # React + Vite + TypeScript
-├─ Hospital.Api.Tests/    # xUnit Tests + Business Logic Validation
-├─ .notebook/             # Technical Documentation
+│  └─ hospital-web/       # React + Vite + TypeScript (planned)
+├─ Hospital.Api.Tests/    # xUnit Tests + Business Logic/Medical Safety Validation
+├─ .notebook/             # Technical Documentation (Fossil SCM)
 ├─ docker-compose.yml     # PostgreSQL + API orchestration
 └─ Signalsboard.sln       # Multi-project solution
 ```

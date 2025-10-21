@@ -23,6 +23,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Hospital.Api\Hospital.Api.csproj" />
-    <ProjectReference Include="..\Hospital.Contracts\Hospital.Contracts.csproj" />
+    <ProjectReference Include="..\Hospital.Api.Contracts\Hospital.Api.Contracts.csproj" />
   </ItemGroup>
 </Project>
