@@ -48,11 +48,13 @@ docker-compose up --build
 ```
 Signalsboard/
 ├── Hospital.Api/              # ASP.NET Core API + SignalR Hub
-├── Hospital.Contracts/        # EF Entities + Business Logic
+│   └── Domain/               # Domain Entities + Business Logic
+├── Hospital.Api.Contracts/    # DTOs and API Contracts
+│   └── DTOs/
 ├── Hospital.Clients/
-│   └── hospital-web/         # React + TypeScript Frontend
-├── Hospital.Api.Tests/       # xUnit Tests
-├── .notebook/               # Technical Documentation
+│   └── hospital-web/         # React + TypeScript Frontend (planned)
+├── Hospital.Api.Tests/       # xUnit Tests + Medical Safety Validation
+├── .notebook/               # Technical Documentation (Fossil SCM)
 └── docker-compose.yml      # Container Orchestration
 ```
 
@@ -102,7 +104,7 @@ Signalsboard/
 ### Frontend (Planned)
 - **React 18** with TypeScript
 - **Vite** for fast development and building
-- **Zustand** for state management
+- **Redux Toolkit (RTK)** for state management
 - **Tailwind CSS** for responsive styling
 - **Recharts** for vital signs visualization
 
@@ -115,7 +117,7 @@ Signalsboard/
 ## 📋 Development Workflow
 
 ### Database Changes
-1. **Modify EF entities** in Hospital.Contracts
+1. **Modify EF entities** in Hospital.Api/Domain
 2. **Add migration**: `dotnet ef migrations add DescriptiveName`
 3. **Test locally**: Migrations apply automatically on startup
 4. **Update tests** if business logic changes
