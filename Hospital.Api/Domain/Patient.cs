@@ -67,31 +67,40 @@ public class Patient
 
         // Critical patient status overrides vital signs
         if (this.IsInCriticalCondition())
+            return AlertSeverity.Critical;
+
+        // Assess each vital sign
+        var hrSeverity = latestVitals.HeartRate.HasValue
+            ? latestVitals.AssessHeartRateAlert()
+            : AlertSeverity.Low;
+
+        var spo2Severity = latestVitals.SpO2.HasValue
+            ? latestVitals.AssessSpO2Alert()
+            : AlertSeverity.Low;
+
+        var bpSeverity = (latestVitals.BpSystolic.HasValue && latestVitals.BpDiastolic.HasValue)
+            ? latestVitals.AssessBloodPressureAlert()
+            : AlertSeverity.Low;
+
+        // If any single vital is Critical, patient is at High risk minimum
+        if (hrSeverity == AlertSeverity.Critical ||
+            spo2Severity == AlertSeverity.Critical ||
+            bpSeverity == AlertSeverity.Critical)
+        {
+            return AlertSeverity.Critical;
+        }
+
+        // Count abnormal vitals (Medium or above)
+        var abnormalCount = 0;
+        if (hrSeverity >= AlertSeverity.Medium) abnormalCount++;
+        if (spo2Severity >= AlertSeverity.Medium) abnormalCount++;
+        if (bpSeverity >= AlertSeverity.Medium) abnormalCount++;
+
+        // Multiple abnormal vitals = High risk (deteriorating patient pattern)
+        if (abnormalCount >= 2)
             return AlertSeverity.High;
 
-        // Check for multiple critical vital signs
-        var criticalCount = 0;
-        
-        if (latestVitals.HeartRate.HasValue)
-        {
-            var hrSeverity = latestVitals.AssessHeartRateAlert();
-            if (hrSeverity == AlertSeverity.Critical) criticalCount++;
-        }
-        
-        if (latestVitals.SpO2.HasValue)
-        {
-            var spo2Severity = latestVitals.AssessSpO2Alert();
-            if (spo2Severity == AlertSeverity.Critical) criticalCount++;
-        }
-        
-        if (latestVitals.BpSystolic.HasValue && latestVitals.BpDiastolic.HasValue)
-        {
-            var bpSeverity = latestVitals.AssessBloodPressureAlert();
-            if (bpSeverity == AlertSeverity.Critical) criticalCount++;
-        }
-
-        return criticalCount >= 2 ? AlertSeverity.High : 
-               criticalCount == 1 ? AlertSeverity.Medium : 
-               AlertSeverity.Low;
+        // Return highest single severity
+        return new[] { hrSeverity, spo2Severity, bpSeverity }.Max();
     }
 }

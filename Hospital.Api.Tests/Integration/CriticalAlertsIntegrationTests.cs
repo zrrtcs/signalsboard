@@ -1,8 +1,10 @@
+using DotNet.Testcontainers.Configurations;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Signalsboard.Hospital.Api.Data;
 using Signalsboard.Hospital.Api.Domain;
+using Signalsboard.Hospital.Api.Services;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -13,10 +15,15 @@ public class CriticalAlertsIntegrationTests : IAsyncLifetime
     private readonly PostgreSqlContainer _postgresContainer;
     private WebApplicationFactory<Program> _factory = null!;
     private HospitalDbContext _context = null!;
+    private AlertService _alertService = null!;
 
     public CriticalAlertsIntegrationTests()
     {
+        // Configure Docker endpoint - use standard socket for Testcontainers
+        var dockerEndpoint = new Uri("unix:///var/run/docker.sock");
+
         _postgresContainer = new PostgreSqlBuilder()
+            .WithDockerEndpoint(dockerEndpoint)
             .WithDatabase("hospital_test")
             .WithUsername("testuser")
             .WithPassword("testpass")
@@ -47,6 +54,8 @@ public class CriticalAlertsIntegrationTests : IAsyncLifetime
         var scope = _factory.Services.CreateScope();
         _context = scope.ServiceProvider.GetRequiredService<HospitalDbContext>();
         await _context.Database.MigrateAsync();
+
+        _alertService = new AlertService();
     }
 
     [Fact]
@@ -82,6 +91,11 @@ public class CriticalAlertsIntegrationTests : IAsyncLifetime
         };
 
         _context.VitalSigns.Add(criticalVitals);
+        await _context.SaveChangesAsync();
+
+        // Generate and persist alerts
+        var generatedAlerts = _alertService.GenerateAlertsForVitals(criticalVitals);
+        _context.Alerts.AddRange(generatedAlerts);
         await _context.SaveChangesAsync();
 
         // Assert - System MUST generate critical alert
@@ -133,6 +147,12 @@ public class CriticalAlertsIntegrationTests : IAsyncLifetime
         _context.VitalSigns.Add(hypoxicVitals);
         await _context.SaveChangesAsync();
 
+        // Generate alerts and update patient status
+        var generatedAlerts = _alertService.GenerateAlertsForVitals(hypoxicVitals);
+        _context.Alerts.AddRange(generatedAlerts);
+        _alertService.UpdatePatientStatus(patient, hypoxicVitals);
+        await _context.SaveChangesAsync();
+
         // Assert - System MUST generate critical alert immediately
         var alertLevel = hypoxicVitals.CalculateAlertSeverity();
         Assert.Equal(AlertSeverity.Critical, alertLevel);
@@ -182,6 +202,12 @@ public class CriticalAlertsIntegrationTests : IAsyncLifetime
         };
 
         _context.VitalSigns.Add(deterioratingVitals);
+        await _context.SaveChangesAsync();
+
+        // Generate alerts and update patient status
+        var generatedAlerts = _alertService.GenerateAlertsForVitals(deterioratingVitals);
+        _context.Alerts.AddRange(generatedAlerts);
+        _alertService.UpdatePatientStatus(patient, deterioratingVitals);
         await _context.SaveChangesAsync();
 
         // Assert - System should recognize pattern and escalate

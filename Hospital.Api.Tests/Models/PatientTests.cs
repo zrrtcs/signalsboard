@@ -94,8 +94,8 @@ public class PatientTests
             // Act
             var riskLevel = patient.CalculateRiskLevel();
 
-            // Assert
-            Assert.Equal(AlertSeverity.High, riskLevel);
+            // Assert - HR 150 and BP 180 are both Critical severity, so patient risk is Critical
+            Assert.Equal(AlertSeverity.Critical, riskLevel);
         }
 
         [Fact]

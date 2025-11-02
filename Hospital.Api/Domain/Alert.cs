@@ -24,7 +24,7 @@ public class Alert
     [Column("severity")]
     [MaxLength(20)]
     [Required]
-    public string Severity { get; set; } = null!; // yellow|red|critical
+    public string Severity { get; set; } = null!; // Low|Medium|High|Critical (from AlertSeverity enum)
 
     [Column("message")]
     [MaxLength(500)]
