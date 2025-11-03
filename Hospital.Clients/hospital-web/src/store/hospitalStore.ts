@@ -33,7 +33,7 @@ interface HospitalState {
   acknowledgeAlert: (alertId: string) => void;
 }
 
-export const useHospitalStore = create<HospitalState>((set, get) => ({
+export const useHospitalStore = create<HospitalState>((set) => ({
   patients: new Map(),
   alerts: [],
   connectionStatus: 'disconnected',
