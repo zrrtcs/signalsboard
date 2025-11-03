@@ -36,7 +36,9 @@ builder.Services.AddSignalR();
 
 // Add application services
 builder.Services.AddScoped<AlertService>();
-builder.Services.AddHostedService<VitalSignsSimulatorService>();
+// Register VitalSignsSimulatorService as both Singleton (for DI) and HostedService (for background execution)
+builder.Services.AddSingleton<VitalSignsSimulatorService>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<VitalSignsSimulatorService>());
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -139,6 +141,7 @@ app.MapPost("/api/vitals/inject", async (
     HospitalDbContext db,
     AlertService alertService,
     IHubContext<VitalsHub, IVitalsClient> hubContext,
+    VitalSignsSimulatorService simulatorService,
     VitalSignsInjectionRequest request) =>
 {
     var patient = await db.Patients
@@ -162,6 +165,9 @@ app.MapPost("/api/vitals/inject", async (
 
     if (!vitals.IsValid())
         return Results.BadRequest("Invalid vital signs values");
+
+    // Record injected vitals so simulator can use as baseline if injection mode is enabled
+    simulatorService.RecordInjectedVitals(request.PatientId, vitals);
 
     db.VitalSigns.Add(vitals);
 
@@ -207,6 +213,20 @@ app.MapPost("/api/vitals/inject", async (
     return Results.Ok(update);
 })
 .WithName("InjectVitalSigns")
+.WithOpenApi();
+
+// Toggle injection mode for a patient
+// When enabled, simulator uses injected vitals as baseline with drift pattern
+app.MapPost("/api/simulator/patient/{id}/injection-mode", (
+    string id,
+    bool enabled,
+    VitalSignsSimulatorService simulatorService) =>
+{
+    simulatorService.SetInjectionMode(id, enabled);
+    var modeStatus = enabled ? "ENABLED" : "DISABLED";
+    return Results.Ok(new { patientId = id, injectionMode = modeStatus });
+})
+.WithName("ToggleInjectionMode")
 .WithOpenApi();
 
 app.MapHealthChecks("/health");

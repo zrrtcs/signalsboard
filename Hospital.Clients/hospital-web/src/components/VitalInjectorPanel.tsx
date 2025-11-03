@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Fab,
   Dialog,
@@ -32,7 +32,11 @@ import type { VitalSignsInjectionRequest } from '../types/hospital';
  * Demonstrates full stack integration in real-time
  */
 export function VitalInjectorPanel() {
-  const patients = useHospitalStore(state => Array.from(state.patients.values()));
+  const patientsMap = useHospitalStore(state => state.patients);
+
+  // Memoize the patients array to avoid infinite re-renders
+  // (Array.from creates new reference each time if done in selector)
+  const patients = useMemo(() => Array.from(patientsMap.values()), [patientsMap]);
 
   const [open, setOpen] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');

@@ -23,6 +23,10 @@ public class VitalSignsSimulatorService : BackgroundService
     private const double AbnormalVitalsProbability = 0.20; // 20% chance
     private const double CriticalVitalsProbability = 0.05; // 5% chance
 
+    // Injection mode tracking (per-patient)
+    private Dictionary<string, bool> _injectionModeEnabled = new();
+    private Dictionary<string, VitalSigns> _lastInjectedVitals = new();
+
     public VitalSignsSimulatorService(
         IServiceProvider serviceProvider,
         IHubContext<VitalsHub, IVitalsClient> hubContext,
@@ -85,7 +89,7 @@ public class VitalSignsSimulatorService : BackgroundService
         foreach (var patient in patientsToUpdate)
         {
             var latestVitals = patient.GetLatestVitals();
-            var newVitals = GenerateRealisticVitals(latestVitals);
+            var newVitals = GenerateRealisticVitals(patient.Id, latestVitals);
 
             newVitals.PatientId = patient.Id;
             dbContext.VitalSigns.Add(newVitals);
@@ -137,21 +141,30 @@ public class VitalSignsSimulatorService : BackgroundService
 
     /// <summary>
     /// Generates realistic vital signs with gradual drift from previous values.
-    /// Occasionally introduces abnormal or critical values for demo purposes.
+    /// If injection mode is enabled, uses last injected vitals as baseline with drift.
+    /// Otherwise generates normally with occasional abnormal/critical events.
     /// </summary>
-    private VitalSigns GenerateRealisticVitals(VitalSigns? previous)
+    private VitalSigns GenerateRealisticVitals(string patientId, VitalSigns? previous)
     {
         var vitals = new VitalSigns
         {
             RecordedAt = DateTime.UtcNow
         };
 
-        // Determine if this should be an abnormal event
-        var shouldBeAbnormal = _random.NextDouble() < AbnormalVitalsProbability;
-        var shouldBeCritical = _random.NextDouble() < CriticalVitalsProbability;
+        // Check if injection mode is enabled for this patient
+        var isInjectionMode = _injectionModeEnabled.TryGetValue(patientId, out var enabled) && enabled;
+        var injectedVitals = isInjectionMode && _lastInjectedVitals.TryGetValue(patientId, out var injected) ? injected : null;
+
+        // In injection mode: use injected vitals as baseline
+        // Normal mode: use previous vitals or defaults
+        var baselinePrevious = injectedVitals ?? previous;
+
+        // Determine if this should be an abnormal event (only in normal mode)
+        var shouldBeAbnormal = !isInjectionMode && _random.NextDouble() < AbnormalVitalsProbability;
+        var shouldBeCritical = !isInjectionMode && _random.NextDouble() < CriticalVitalsProbability;
 
         // Generate heart rate with realistic drift
-        var baseHR = previous?.HeartRate ?? 75;
+        var baseHR = baselinePrevious?.HeartRate ?? 75;
         if (shouldBeCritical)
         {
             vitals.HeartRate = _random.Next(0, 100) < 50 ? _random.Next(35, 45) : _random.Next(140, 180);
@@ -168,7 +181,7 @@ public class VitalSignsSimulatorService : BackgroundService
         }
 
         // Generate SpO2 with realistic behavior
-        var baseSpO2 = previous?.SpO2 ?? 98;
+        var baseSpO2 = baselinePrevious?.SpO2 ?? 98;
         if (shouldBeCritical)
         {
             vitals.SpO2 = _random.Next(82, 88);
@@ -185,8 +198,8 @@ public class VitalSignsSimulatorService : BackgroundService
         }
 
         // Generate blood pressure
-        var baseSystolic = previous?.BpSystolic ?? 120;
-        var baseDiastolic = previous?.BpDiastolic ?? 80;
+        var baseSystolic = baselinePrevious?.BpSystolic ?? 120;
+        var baseDiastolic = baselinePrevious?.BpDiastolic ?? 80;
 
         if (shouldBeCritical)
         {
@@ -208,5 +221,28 @@ public class VitalSignsSimulatorService : BackgroundService
         }
 
         return vitals;
+    }
+
+    /// <summary>
+    /// Toggle injection mode for a specific patient.
+    /// When enabled, simulator uses last injected vitals as baseline with drift.
+    /// </summary>
+    public void SetInjectionMode(string patientId, bool enabled)
+    {
+        _injectionModeEnabled[patientId] = enabled;
+        var modeStatus = enabled ? "ENABLED" : "DISABLED";
+        _logger.LogInformation("Injection mode {Status} for patient {PatientId}", modeStatus, patientId);
+    }
+
+    /// <summary>
+    /// Record injected vitals for a patient.
+    /// The simulator will use these as baseline values when injection mode is enabled.
+    /// </summary>
+    public void RecordInjectedVitals(string patientId, VitalSigns vitals)
+    {
+        _lastInjectedVitals[patientId] = vitals;
+        _logger.LogInformation(
+            "Injected vitals recorded for patient {PatientId}: HR={HR}, SpO2={SpO2}, BP={BP}/{BPDia}",
+            patientId, vitals.HeartRate, vitals.SpO2, vitals.BpSystolic, vitals.BpDiastolic);
     }
 }

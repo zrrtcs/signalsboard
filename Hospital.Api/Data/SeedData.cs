@@ -72,10 +72,10 @@ public static class SeedData
                 Mrn = "MRN-003",
                 Name = "Bob Critical",
                 BedId = "b3",
-                Status = "critical",
+                Status = "stable",
                 AdmittedAt = DateTime.UtcNow.AddDays(-1),
                 AttendingPhysician = "Dr. Williams",
-                PrimaryDiagnosis = "Severe sepsis"
+                PrimaryDiagnosis = "Post-surgical monitoring"
             }
         };
         context.Patients.AddRange(patients);
@@ -110,11 +110,11 @@ public static class SeedData
             {
                 Id = "v3",
                 PatientId = "p3",
-                HeartRate = 165,
-                SpO2 = 86,
-                BpSystolic = 185,
-                BpDiastolic = 110,
-                Temperature = 38.5m,
+                HeartRate = 78,
+                SpO2 = 97,
+                BpSystolic = 122,
+                BpDiastolic = 80,
+                Temperature = 37.1m,
                 RecordedAt = DateTime.UtcNow
             }
         };

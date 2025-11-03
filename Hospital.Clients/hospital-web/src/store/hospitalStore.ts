@@ -21,6 +21,7 @@ interface HospitalState {
   selectedWardId?: string;
   showAlertsOnly: boolean;
   selectedPatientId?: string; // For trend chart modal
+  injectionModeEnabled: Map<string, boolean>; // Track which patients have injection mode ON
 
   // Actions
   setPatients: (patients: Patient[]) => void;
@@ -31,6 +32,7 @@ interface HospitalState {
   setShowAlertsOnly: (show: boolean) => void;
   setSelectedPatient: (patientId?: string) => void;
   acknowledgeAlert: (alertId: string) => void;
+  toggleInjectionMode: (patientId: string, enabled: boolean) => void;
 }
 
 export const useHospitalStore = create<HospitalState>((set) => ({
@@ -38,6 +40,7 @@ export const useHospitalStore = create<HospitalState>((set) => ({
   alerts: [],
   connectionStatus: 'disconnected',
   showAlertsOnly: false,
+  injectionModeEnabled: new Map(),
 
   setPatients: (patients) => set({
     patients: new Map(patients.map(p => [p.id, p]))
@@ -104,6 +107,12 @@ export const useHospitalStore = create<HospitalState>((set) => ({
         : alert
     )
   })),
+
+  toggleInjectionMode: (patientId, enabled) => set((state) => {
+    const injectionModeEnabled = new Map(state.injectionModeEnabled);
+    injectionModeEnabled.set(patientId, enabled);
+    return { injectionModeEnabled };
+  }),
 }));
 
 /**

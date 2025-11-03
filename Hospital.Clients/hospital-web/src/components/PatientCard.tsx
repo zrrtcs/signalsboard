@@ -1,11 +1,14 @@
-import { Card, CardContent, Typography, Box, Chip, Stack } from '@mui/material';
+import { useState } from 'react';
+import { Card, CardContent, Typography, Box, Chip, Stack, IconButton } from '@mui/material';
 import {
   Favorite as HeartIcon,
   Air as O2Icon,
   TrendingUp as BPIcon,
   LocalHospital as BedIcon,
+  Speed as SpeedIcon,
 } from '@mui/icons-material';
 import type { Patient, AlertSeverity } from '../types/hospital';
+import { useHospitalStore } from '../store/hospitalStore';
 
 interface PatientCardProps {
   patient: Patient;
@@ -13,8 +16,41 @@ interface PatientCardProps {
 }
 
 export function PatientCard({ patient, onClick }: PatientCardProps) {
+  const [togglingInjection, setTogglingInjection] = useState(false);
+  const injectionModeEnabled = useHospitalStore(state => state.injectionModeEnabled.get(patient.id) ?? false);
+  const toggleInjectionMode = useHospitalStore(state => state.toggleInjectionMode);
+
   const vitalsList = Array.isArray(patient.vitalSigns) ? patient.vitalSigns : [];
   const latestVitals = vitalsList[0];
+
+  // Handle injection mode toggle
+  const handleToggleInjection = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering card click
+    setTogglingInjection(true);
+
+    try {
+      const newState = !injectionModeEnabled;
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
+      // Call backend API
+      const response = await fetch(
+        `${apiUrl}/simulator/patient/${patient.id}/injection-mode?enabled=${newState}`,
+        { method: 'POST' }
+      );
+
+      if (response.ok) {
+        // Update local state
+        toggleInjectionMode(patient.id, newState);
+        console.log(`Injection mode ${newState ? 'ENABLED' : 'DISABLED'} for ${patient.name}`);
+      } else {
+        console.error('Failed to toggle injection mode:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error toggling injection mode:', error);
+    } finally {
+      setTogglingInjection(false);
+    }
+  };
 
   // Calculate alert severity from vitals
   const getVitalSeverity = (): AlertSeverity => {
@@ -80,9 +116,26 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
       <CardContent>
         {/* Patient Info */}
         <Box sx={{ mb: 2 }}>
-          <Typography variant="h6" component="div" fontWeight={600}>
-            {patient.name}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="h6" component="div" fontWeight={600}>
+              {patient.name}
+            </Typography>
+            <IconButton
+              size="small"
+              onClick={handleToggleInjection}
+              disabled={togglingInjection}
+              sx={{
+                color: injectionModeEnabled ? '#ff9800' : 'inherit',
+                transition: 'color 0.3s ease',
+                '&:hover': {
+                  color: injectionModeEnabled ? '#ff6f00' : '#999',
+                },
+              }}
+              title={injectionModeEnabled ? '💉 Injection Mode: ON' : '💉 Injection Mode: OFF'}
+            >
+              <SpeedIcon />
+            </IconButton>
+          </Box>
           <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
             <Chip
               icon={<BedIcon />}
