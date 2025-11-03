@@ -29,6 +29,12 @@ export function useHospitalSignalR() {
     // Define startConnection FIRST before using it
     const startConnection = async () => {
       try {
+        // Guard: only start if connection is in disconnected state
+        if (connectionRef.current?.state !== signalR.HubConnectionState.Disconnected) {
+          console.log('⏭️ Connection not ready to start, skipping');
+          return;
+        }
+
         setConnectionStatus('connecting');
         await connectionRef.current!.start();
         console.log('✅ Connected to VitalsHub');
