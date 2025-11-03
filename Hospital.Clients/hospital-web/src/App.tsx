@@ -4,6 +4,7 @@ import { SignalCellularAlt as SignalIcon } from '@mui/icons-material';
 import { useHospitalSignalR } from './hooks/useHospitalSignalR';
 import { useHospitalStore } from './store/hospitalStore';
 import { PatientGrid } from './components/PatientGrid';
+import { VitalInjectorPanel } from './components/VitalInjectorPanel';
 import { hospitalApi, mockPatients } from './services/hospitalApi';
 
 // Medical dashboard theme - optimized for TV displays
@@ -139,6 +140,9 @@ function App() {
             </>
           )}
         </Box>
+
+        {/* Vital Injector Testing Tool */}
+        <VitalInjectorPanel />
       </Box>
     </ThemeProvider>
   );
