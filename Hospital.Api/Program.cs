@@ -4,6 +4,7 @@ using Signalsboard.Hospital.Api.Data;
 using Signalsboard.Hospital.Api.Domain;
 using Signalsboard.Hospital.Api.Hubs;
 using Signalsboard.Hospital.Api.Services;
+using static Signalsboard.Hospital.Api.Data.SeedData;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,12 +59,7 @@ app.UseHttpsRedirection();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<HospitalDbContext>();
-
-    // Apply pending migrations
-    context.Database.Migrate();
-
-    // Development-only sample data seeding
-    // TODO: Move to separate SeedData service
+    Initialize(context);
 }
 
 // Hospital API Endpoints
@@ -86,11 +82,38 @@ app.MapGet("/api/patients", async (HospitalDbContext db, string? wardId = null) 
         query = query.Where(p => p.Bed != null && p.Bed.WardId == wardId);
     }
 
+    // Project only needed fields to avoid circular reference serialization errors
     var patients = await query
-        .Include(p => p.Bed)
-        .ThenInclude(b => b!.Ward)
-        .Include(p => p.VitalSigns.OrderByDescending(v => v.RecordedAt).Take(1))
         .OrderBy(p => p.Name)
+        .Select(p => new
+        {
+            p.Id,
+            p.Mrn,
+            p.Name,
+            p.Status,
+            p.AdmittedAt,
+            p.AttendingPhysician,
+            p.PrimaryDiagnosis,
+            BedId = p.BedId,
+            BedNumber = p.Bed != null ? p.Bed.Number : null,
+            BedType = p.Bed != null ? p.Bed.BedType : null,
+            WardName = p.Bed != null && p.Bed.Ward != null ? p.Bed.Ward.Name : null,
+            LatestVitals = p.VitalSigns
+                .OrderByDescending(v => v.RecordedAt)
+                .Take(1)
+                .Select(v => new
+                {
+                    v.Id,
+                    v.PatientId,
+                    v.HeartRate,
+                    v.SpO2,
+                    v.BpSystolic,
+                    v.BpDiastolic,
+                    v.Temperature,
+                    v.RecordedAt
+                })
+                .FirstOrDefault()
+        })
         .ToListAsync();
 
     return Results.Ok(patients);

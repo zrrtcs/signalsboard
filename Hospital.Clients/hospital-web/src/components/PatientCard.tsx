@@ -13,7 +13,8 @@ interface PatientCardProps {
 }
 
 export function PatientCard({ patient, onClick }: PatientCardProps) {
-  const latestVitals = patient.vitalSigns[0];
+  const vitalsList = Array.isArray(patient.vitalSigns) ? patient.vitalSigns : [];
+  const latestVitals = vitalsList[0];
 
   // Calculate alert severity from vitals
   const getVitalSeverity = (): AlertSeverity => {

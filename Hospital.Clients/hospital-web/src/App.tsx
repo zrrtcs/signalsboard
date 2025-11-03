@@ -60,7 +60,14 @@ function App() {
           console.warn('API unavailable, using mock data');
           return mockPatients;
         });
-        setPatients(data);
+
+        // Use mock data if API returns empty array
+        if (data.length === 0) {
+          console.warn('API returned no patients, using mock data');
+          setPatients(mockPatients);
+        } else {
+          setPatients(data);
+        }
         setError(null);
       } catch (err) {
         console.error('Failed to load patients:', err);

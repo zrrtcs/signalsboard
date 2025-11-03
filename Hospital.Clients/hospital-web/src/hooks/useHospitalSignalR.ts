@@ -20,19 +20,41 @@ export function useHospitalSignalR() {
   const connectionStatus = useHospitalStore(state => state.connectionStatus);
 
   useEffect(() => {
+    // Skip if already connected or connecting
+    if (connectionRef.current?.state === signalR.HubConnectionState.Connected ||
+        connectionRef.current?.state === signalR.HubConnectionState.Connecting) {
+      return;
+    }
+
+    // Define startConnection FIRST before using it
+    const startConnection = async () => {
+      try {
+        setConnectionStatus('connecting');
+        await connectionRef.current!.start();
+        console.log('✅ Connected to VitalsHub');
+        setConnectionStatus('connected');
+        reconnectAttemptsRef.current = 0;
+      } catch (err) {
+        console.error('❌ Connection failed:', err);
+        setConnectionStatus('disconnected');
+
+        // Retry with exponential backoff (only manual retries, SignalR handles auto-reconnect)
+        if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+          const retryDelay = 1000 * Math.pow(2, reconnectAttemptsRef.current);
+          console.log(`🔄 Retrying in ${retryDelay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
+          reconnectAttemptsRef.current++;
+          setTimeout(() => startConnection(), retryDelay);
+        } else {
+          console.error('❌ Max reconnect attempts reached.');
+        }
+      }
+    };
+
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(HUB_URL, {
-        skipNegotiation: false,
         transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
       })
-      .withAutomaticReconnect({
-        nextRetryDelayInMilliseconds: (retryContext) => {
-          // Exponential backoff: 1s, 2s, 4s, 8s, 16s
-          const delay = Math.min(1000 * Math.pow(2, retryContext.previousRetryCount), 16000);
-          console.log(`Reconnecting in ${delay}ms (attempt ${retryContext.previousRetryCount + 1})`);
-          return delay;
-        }
-      })
+      .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
       .configureLogging(signalR.LogLevel.Information)
       .build();
 
@@ -57,14 +79,14 @@ export function useHospitalSignalR() {
       }
     });
 
-    // Connection lifecycle
+    // Connection lifecycle events
     connection.onreconnecting(() => {
       console.log('🔄 Reconnecting...');
       setConnectionStatus('reconnecting');
     });
 
     connection.onreconnected(() => {
-      console.log('✅ Reconnected');
+      console.log('✅ Reconnected automatically');
       setConnectionStatus('connected');
       reconnectAttemptsRef.current = 0;
     });
@@ -72,40 +94,20 @@ export function useHospitalSignalR() {
     connection.onclose((error) => {
       console.error('❌ Connection closed:', error);
       setConnectionStatus('disconnected');
-
-      if (reconnectAttemptsRef.current < maxReconnectAttempts) {
-        setTimeout(() => startConnection(), 5000);
-        reconnectAttemptsRef.current++;
-      }
     });
-
-    const startConnection = async () => {
-      try {
-        setConnectionStatus('connecting');
-        await connection.start();
-        console.log('✅ Connected to VitalsHub');
-        setConnectionStatus('connected');
-        reconnectAttemptsRef.current = 0;
-      } catch (err) {
-        console.error('❌ Connection failed:', err);
-        setConnectionStatus('disconnected');
-
-        if (reconnectAttemptsRef.current < maxReconnectAttempts) {
-          setTimeout(() => startConnection(), 3000);
-          reconnectAttemptsRef.current++;
-        }
-      }
-    };
 
     // Request notification permission
     if (Notification.permission === 'default') {
       Notification.requestPermission();
     }
 
+    // Start connection
     startConnection();
 
     return () => {
-      connection.stop();
+      if (connection.state !== signalR.HubConnectionState.Disconnected) {
+        connection.stop();
+      }
     };
   }, []);
 

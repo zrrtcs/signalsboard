@@ -9,7 +9,7 @@ WORKDIR /src
 
 # Copy project files and restore dependencies
 COPY ["Hospital.Api/Hospital.Api.csproj", "Hospital.Api/"]
-COPY ["Hospital.Contracts/Hospital.Contracts.csproj", "Hospital.Contracts/"]
+COPY ["Hospital.Api.Contracts/Hospital.Api.Contracts.csproj", "Hospital.Api.Contracts/"]
 RUN dotnet restore "Hospital.Api/Hospital.Api.csproj"
 
 # Copy source code

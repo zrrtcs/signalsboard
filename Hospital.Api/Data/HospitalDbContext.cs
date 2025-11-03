@@ -79,4 +79,58 @@ public class HospitalDbContext : DbContext
             entity.HasIndex(s => s.WardId);
         });
     }
+
+    public void SeedDatabase()
+    {
+        if (!Wards.Any())
+        {
+            var wards = new List<Ward>
+            {
+                new Ward { Name = "Cardiology" },
+                new Ward { Name = "Neurology" },
+                new Ward { Name = "Pediatrics" }
+            };
+
+            Wards.AddRange(wards);
+            SaveChanges();
+
+            var beds = new List<Bed>();
+            foreach (var ward in wards)
+            {
+                for (int i = 1; i <= 10; i++)
+                {
+                    beds.Add(new Bed { WardId = ward.Id, Number = i.ToString() });
+                }
+            }
+
+            Beds.AddRange(beds);
+            SaveChanges();
+
+            var patients = new List<Patient>
+            {
+                new Patient { Name = "John Doe", Mrn = "MRN001", BedId = beds[0].Id },
+                new Patient { Name = "Jane Smith", Mrn = "MRN002", BedId = beds[1].Id },
+                new Patient { Name = "Alice Johnson", Mrn = "MRN003", BedId = beds[2].Id },
+                new Patient { Name = "Bob Brown", Mrn = "MRN004", BedId = beds[3].Id },
+                new Patient { Name = "Charlie Davis", Mrn = "MRN005", BedId = beds[4].Id },
+                new Patient { Name = "Diana Evans", Mrn = "MRN006", BedId = beds[5].Id },
+                new Patient { Name = "Ethan Foster", Mrn = "MRN007", BedId = beds[6].Id },
+                new Patient { Name = "Fiona Green", Mrn = "MRN008", BedId = beds[7].Id },
+                new Patient { Name = "George Harris", Mrn = "MRN009", BedId = beds[8].Id },
+                new Patient { Name = "Hannah Irving", Mrn = "MRN010", BedId = beds[9].Id }
+            };
+
+            Patients.AddRange(patients);
+            SaveChanges();
+
+            var staff = new List<Staff>
+            {
+                new Staff { Name = "Dr. Alice", WardId = wards[0].Id },
+                new Staff { Name = "Nurse Bob", WardId = wards[1].Id }
+            };
+
+            Staff.AddRange(staff);
+            SaveChanges();
+        }
+    }
 }

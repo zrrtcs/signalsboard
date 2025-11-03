@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Patient, Alert, ConnectionStatus, VitalSignsUpdate, AlertNotification } from '../types/hospital';
+import type { Patient, Alert, ConnectionStatus, VitalSignsUpdate, AlertNotification } from '../types/hospital';
 
 /**
  * Hospital Dashboard State Management
@@ -59,10 +59,13 @@ export const useHospitalStore = create<HospitalState>((set, get) => ({
         recordedAt: update.recordedAt,
       };
 
+      // Ensure vitalSigns is always an array (API returns latestVitals object initially)
+      const existingVitals = Array.isArray(patient.vitalSigns) ? patient.vitalSigns : [];
+
       // Update patient with new vitals (keep last 20 for sparkline)
       const updatedPatient = {
         ...patient,
-        vitalSigns: [newVitals, ...patient.vitalSigns].slice(0, 20),
+        vitalSigns: [newVitals, ...existingVitals].slice(0, 20),
       };
 
       patients.set(update.patientId, updatedPatient);
@@ -118,7 +121,8 @@ export const selectFilteredPatients = (state: HospitalState): Patient[] => {
   // Filter by alerts only
   if (state.showAlertsOnly) {
     patients = patients.filter(p => {
-      const latestVitals = p.vitalSigns[0];
+      const vitalsList = Array.isArray(p.vitalSigns) ? p.vitalSigns : [];
+      const latestVitals = vitalsList[0];
       if (!latestVitals) return false;
 
       // Consider patient in alert state if any vital is abnormal

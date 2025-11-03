@@ -373,3 +373,29 @@ MIT (demo; mock data only).
 ---
 
 If you want, I can generate the **SignalR hub + Minimal API skeleton** and the **Vite config** next.
+
+## SignalR Setup
+
+The SignalR hub is configured in `Hospital.Api` to handle real-time updates for vital signs and alerts. The hub is exposed at `/hubs/vitals` and supports WebSocket and Long Polling transports.
+
+### Backend Configuration
+- **CORS**: Ensure the frontend origin is allowed in `Program.cs`.
+- **Health Check**: The Dockerfile includes a health check for the API.
+
+### Frontend Integration
+- Use the `useHospitalSignalR` hook to manage SignalR connections.
+- Handle events like `ReceiveVitalUpdate` and `ReceiveAlert` for real-time updates.
+
+## Database Migration
+
+The database migration process is automated in the Docker container. Ensure the following:
+- The `init-db.sql` script is included in the Docker image.
+- Migrations are applied during container startup using `dotnet ef database update`.
+
+## Docker Configuration
+
+The `Dockerfile` ensures the API runs at boot with the following:
+- **ENTRYPOINT**: `dotnet Hospital.Api.dll`
+- **Port**: Exposed on `8080`.
+- **Non-root User**: Runs as `appuser` for security.
+- **Health Check**: Verifies the API is running.
