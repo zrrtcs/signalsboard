@@ -40,12 +40,13 @@ interface HospitalState {
   getOriginalMuteState: (patientId: string) => boolean | undefined;
 }
 
-export const useHospitalStore = create<HospitalState>((set) => ({
+export const useHospitalStore = create<HospitalState>((set, get) => ({
   patients: new Map(),
   alerts: [],
   connectionStatus: 'disconnected',
   showAlertsOnly: false,
   injectionModeEnabled: new Map(),
+  patientMutesBeforeNurseAttending: new Map(),
 
   setPatients: (patients) => set({
     patients: new Map(patients.map(p => [p.id, p]))
@@ -125,6 +126,20 @@ export const useHospitalStore = create<HospitalState>((set) => ({
     injectionModeEnabled.set(patientId, enabled);
     return { injectionModeEnabled };
   }),
+
+  setNurseAttending: (patientId) => set({
+    nurseAttendingPatientId: patientId,
+  }),
+
+  storeOriginalMuteState: (patientId, isMuted) => set((state) => {
+    const mutesMap = new Map(state.patientMutesBeforeNurseAttending);
+    mutesMap.set(patientId, isMuted);
+    return { patientMutesBeforeNurseAttending: mutesMap };
+  }),
+
+  getOriginalMuteState: (patientId) => {
+    return get().patientMutesBeforeNurseAttending.get(patientId);
+  },
 }));
 
 /**

@@ -8,10 +8,12 @@ import {
   Speed as SpeedIcon,
   VolumeOff as MuteIcon,
   VolumeUp as UnmuteIcon,
+  LocalFlorist as NurseIcon,
 } from '@mui/icons-material';
 import type { Patient, AlertSeverity } from '../types/hospital';
 import { useHospitalStore } from '../store/hospitalStore';
 import { useAudioAlert } from '../hooks/useAudioAlert';
+import { NurseAttendingModal } from './NurseAttendingModal';
 import { VitalTrendsChart } from './VitalTrendsChart';
 import { VitalSparkline } from './VitalSparkline';
 
@@ -23,10 +25,15 @@ interface PatientCardProps {
 export function PatientCard({ patient, onClick }: PatientCardProps) {
   const [togglingInjection, setTogglingInjection] = useState(false);
   const [showTrends, setShowTrends] = useState(false);
+  const [showNurseModal, setShowNurseModal] = useState(false);
 
   // Audio alert hook - manages critical event sounds and per-patient mute settings
   const { togglePatientMute, isPatientMuted } = useAudioAlert();
   const isMuted = isPatientMuted(patient.id);
+
+  // Nurse attending state from store
+  const nurseAttendingPatientId = useHospitalStore(state => state.nurseAttendingPatientId);
+  const isNurseAttending = nurseAttendingPatientId === patient.id;
 
   // Read injection mode from patient object (database source of truth)
   // During toggle, Zustand store updates optimistically, but DB state is authoritative
@@ -95,30 +102,35 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
   };
 
   return (
-    <Card
-      onClick={onClick}
-      sx={{
-        cursor: onClick ? 'pointer' : 'default',
-        borderLeft: `6px solid ${getBorderColor()}`,
-        transition: 'all 0.3s ease',
-        '&:hover': onClick ? {
-          transform: 'translateY(-4px)',
-          boxShadow: 6,
-        } : {},
-        // Critical status: pulsing border + outer glow
-        animation: severity === 'Critical' ? 'criticalPulse 1.5s ease-in-out infinite' : 'none',
-        '@keyframes criticalPulse': {
-          '0%, 100%': {
-            borderLeft: `6px solid ${getBorderColor()}`,
-            boxShadow: `0 0 0 0 ${getBorderColor()}60, inset 0 0 10px ${getBorderColor()}20`,
+    <>
+      <Card
+        onClick={onClick}
+        sx={{
+          cursor: onClick ? 'pointer' : 'default',
+          borderLeft: isNurseAttending ? '6px solid #66bb6a' : `6px solid ${getBorderColor()}`,
+          transition: 'all 0.3s ease',
+          '&:hover': onClick ? {
+            transform: 'translateY(-4px)',
+            boxShadow: 6,
+          } : {},
+          // When nurse attending: solid green glow
+          ...(isNurseAttending && {
+            boxShadow: '0 0 15px #66bb6a66, inset 0 0 10px #66bb6a20',
+          }),
+          // Critical status: pulsing border + outer glow (unless nurse attending)
+          animation: !isNurseAttending && severity === 'Critical' ? 'criticalPulse 1.5s ease-in-out infinite' : 'none',
+          '@keyframes criticalPulse': {
+            '0%, 100%': {
+              borderLeft: `6px solid ${getBorderColor()}`,
+              boxShadow: `0 0 0 0 ${getBorderColor()}60, inset 0 0 10px ${getBorderColor()}20`,
+            },
+            '50%': {
+              borderLeft: `6px solid ${getBorderColor()}dd`,
+              boxShadow: `0 0 0 12px ${getBorderColor()}00, inset 0 0 15px ${getBorderColor()}40`,
+            },
           },
-          '50%': {
-            borderLeft: `6px solid ${getBorderColor()}dd`,
-            boxShadow: `0 0 0 12px ${getBorderColor()}00, inset 0 0 15px ${getBorderColor()}40`,
-          },
-        },
-      }}
-    >
+        }}
+      >
       <CardContent>
         {/* Patient Info */}
         <Box sx={{ mb: 2 }}>
@@ -168,6 +180,25 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
                 title={injectionModeEnabled ? '💉 Injection Mode: ON' : '💉 Injection Mode: OFF'}
               >
                 <SpeedIcon />
+              </IconButton>
+
+              {/* Nurse Attending Button */}
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowNurseModal(true);
+                }}
+                sx={{
+                  color: isNurseAttending ? '#66bb6a' : 'inherit',
+                  transition: 'color 0.3s ease',
+                  '&:hover': {
+                    color: isNurseAttending ? '#81c784' : '#66bb6a',
+                  },
+                }}
+                title={isNurseAttending ? '👨‍⚕️ Nurse Attending' : '👨‍⚕️ Call Nurse'}
+              >
+                <NurseIcon />
               </IconButton>
             </Stack>
           </Box>
@@ -265,6 +296,14 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
         open={showTrends}
         onClose={() => setShowTrends(false)}
       />
+
+      {/* Nurse Attending Modal */}
+      <NurseAttendingModal
+        patient={patient}
+        open={showNurseModal}
+        onClose={() => setShowNurseModal(false)}
+      />
     </Card>
+    </>
   );
 }
