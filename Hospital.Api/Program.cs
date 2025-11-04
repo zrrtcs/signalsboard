@@ -84,41 +84,60 @@ app.MapGet("/api/patients", async (HospitalDbContext db, string? wardId = null) 
         query = query.Where(p => p.Bed != null && p.Bed.WardId == wardId);
     }
 
-    // Project only needed fields to avoid circular reference serialization errors
-    var patients = await query
+    // Fetch patients with their most recent bed and relationships
+    var allPatients = await query
+        .Include(p => p.Bed)
+        .ThenInclude(b => b!.Ward)
+        .Include(p => p.VitalSigns)  // Load all vitals into memory first
         .OrderBy(p => p.Name)
-        .Select(p => new
-        {
-            p.Id,
-            p.Mrn,
-            p.Name,
-            p.Status,
-            p.AdmittedAt,
-            p.AttendingPhysician,
-            p.PrimaryDiagnosis,
-            BedId = p.BedId,
-            BedNumber = p.Bed != null ? p.Bed.Number : null,
-            BedType = p.Bed != null ? p.Bed.BedType : null,
-            WardName = p.Bed != null && p.Bed.Ward != null ? p.Bed.Ward.Name : null,
-            LatestVitals = p.VitalSigns
-                .OrderByDescending(v => v.RecordedAt)
-                .Take(1)
-                .Select(v => new
-                {
-                    v.Id,
-                    v.PatientId,
-                    v.HeartRate,
-                    v.SpO2,
-                    v.BpSystolic,
-                    v.BpDiastolic,
-                    v.Temperature,
-                    v.RecordedAt
-                })
-                .FirstOrDefault()
-        })
         .ToListAsync();
 
-    return Results.Ok(patients);
+    // Project to DTO with limited vitals (20 most recent) client-side
+    var patientsDto = allPatients.Select(p => new
+    {
+        p.Id,
+        p.Mrn,
+        p.Name,
+        p.Status,
+        p.AdmittedAt,
+        p.AttendingPhysician,
+        p.PrimaryDiagnosis,
+        p.InjectionModeEnabled,  // ← Include injection mode state from database
+        Bed = p.Bed != null ? new
+        {
+            p.Bed.Id,
+            p.Bed.Number,
+            p.Bed.WardId,
+            p.Bed.Status,
+            p.Bed.BedType,
+            Ward = p.Bed.Ward != null ? new
+            {
+                p.Bed.Ward.Id,
+                p.Bed.Ward.Name,
+                p.Bed.Ward.Capacity,
+                p.Bed.Ward.Location
+            } : (object?)null
+        } : (object?)null,
+        // Keep last 20 vitals, ordered chronologically for sparklines
+        VitalSigns = p.VitalSigns
+            .OrderByDescending(v => v.RecordedAt)
+            .Take(20)
+            .OrderBy(v => v.RecordedAt)  // Reverse to chronological for frontend
+            .Select(v => new
+            {
+                v.Id,
+                v.PatientId,
+                v.HeartRate,
+                v.SpO2,
+                v.BpSystolic,
+                v.BpDiastolic,
+                v.Temperature,
+                v.RecordedAt
+            })
+            .ToList()
+    }).ToList();
+
+    return Results.Ok(patientsDto);
 })
 .WithName("GetPatients")
 .WithOpenApi();
@@ -217,12 +236,24 @@ app.MapPost("/api/vitals/inject", async (
 
 // Toggle injection mode for a patient
 // When enabled, simulator uses injected vitals as baseline with drift pattern
-app.MapPost("/api/simulator/patient/{id}/injection-mode", (
+app.MapPost("/api/simulator/patient/{id}/injection-mode", async (
     string id,
     bool enabled,
+    HospitalDbContext db,
     VitalSignsSimulatorService simulatorService) =>
 {
+    // Fetch patient from database
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Id == id);
+    if (patient == null)
+        return Results.NotFound($"Patient {id} not found");
+
+    // Update database (source of truth)
+    patient.InjectionModeEnabled = enabled;
+    await db.SaveChangesAsync();
+
+    // Update in-memory simulator state
     simulatorService.SetInjectionMode(id, enabled);
+
     var modeStatus = enabled ? "ENABLED" : "DISABLED";
     return Results.Ok(new { patientId = id, injectionMode = modeStatus });
 })

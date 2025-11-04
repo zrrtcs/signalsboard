@@ -41,6 +41,9 @@ public class Patient
     [MaxLength(500)]
     public string? PrimaryDiagnosis { get; set; }
 
+    [Column("injection_mode_enabled")]
+    public bool InjectionModeEnabled { get; set; } = false;
+
     // Navigation properties
     [ForeignKey("BedId")]
     public virtual Bed? Bed { get; set; }

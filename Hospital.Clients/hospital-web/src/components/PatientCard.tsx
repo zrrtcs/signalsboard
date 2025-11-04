@@ -9,6 +9,8 @@ import {
 } from '@mui/icons-material';
 import type { Patient, AlertSeverity } from '../types/hospital';
 import { useHospitalStore } from '../store/hospitalStore';
+import { VitalTrendsChart } from './VitalTrendsChart';
+import { VitalSparkline } from './VitalSparkline';
 
 interface PatientCardProps {
   patient: Patient;
@@ -17,7 +19,12 @@ interface PatientCardProps {
 
 export function PatientCard({ patient, onClick }: PatientCardProps) {
   const [togglingInjection, setTogglingInjection] = useState(false);
-  const injectionModeEnabled = useHospitalStore(state => state.injectionModeEnabled.get(patient.id) ?? false);
+  const [showTrends, setShowTrends] = useState(false);
+  // Read injection mode from patient object (database source of truth)
+  // Falls back to Zustand for optimistic UI updates during toggle
+  const injectionModeFromDB = patient.injectionModeEnabled ?? false;
+  const injectionModeFromStore = useHospitalStore(state => state.injectionModeEnabled.get(patient.id) ?? false);
+  const injectionModeEnabled = injectionModeFromStore || injectionModeFromDB;
   const toggleInjectionMode = useHospitalStore(state => state.toggleInjectionMode);
 
   const vitalsList = Array.isArray(patient.vitalSigns) ? patient.vitalSigns : [];
@@ -52,38 +59,21 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
     }
   };
 
-  // Calculate alert severity from vitals
-  const getVitalSeverity = (): AlertSeverity => {
-    if (!latestVitals) return 'Low';
-
-    const hrCritical = latestVitals.heartRate && (latestVitals.heartRate < 45 || latestVitals.heartRate >= 130);
-    const spo2Critical = latestVitals.spO2 && latestVitals.spO2 < 88;
-    const bpCritical = latestVitals.bpSystolic && latestVitals.bpSystolic >= 180;
-
-    if (hrCritical || spo2Critical || bpCritical) return 'Critical';
-
-    const hrHigh = latestVitals.heartRate && (latestVitals.heartRate < 55 || latestVitals.heartRate >= 110);
-    const spo2High = latestVitals.spO2 && latestVitals.spO2 < 92;
-    const bpHigh = latestVitals.bpSystolic && latestVitals.bpSystolic >= 160;
-
-    if (hrHigh || spo2High || bpHigh) return 'High';
-
-    const hrMed = latestVitals.heartRate && (latestVitals.heartRate >= 100);
-    const spo2Med = latestVitals.spO2 && latestVitals.spO2 < 94;
-    const bpMed = latestVitals.bpSystolic && latestVitals.bpSystolic >= 140;
-
-    if (hrMed || spo2Med || bpMed) return 'Medium';
-
-    return 'Low';
+  // Use patient.status from API as single source of truth (already computed by backend)
+  const getSeverityFromStatus = (status: string): AlertSeverity => {
+    switch (status.toLowerCase()) {
+      case 'critical': return 'Critical';
+      case 'watch': return 'High';
+      default: return 'Low';
+    }
   };
 
-  const severity = getVitalSeverity();
+  const severity = getSeverityFromStatus(patient.status);
 
   const getBorderColor = () => {
     switch (severity) {
       case 'Critical': return '#f44336';
       case 'High': return '#ff9800';
-      case 'Medium': return '#ff9800';
       default: return '#4caf50';
     }
   };
@@ -209,11 +199,27 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
             <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
               Updated: {new Date(latestVitals.recordedAt).toLocaleTimeString()}
             </Typography>
+
+            {/* Sparkline - Click to see full trends */}
+            <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #eee' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                4-hour Trend (HR)
+              </Typography>
+              <VitalSparkline patient={patient} onClick={() => setShowTrends(true)} />
+            </Box>
           </Stack>
         ) : (
           <Typography color="text.secondary">No vital signs recorded</Typography>
         )}
       </CardContent>
+
+      {/* Full Trends Chart in Drawer */}
+      <VitalTrendsChart
+        patientId={patient.id}
+        patientName={patient.name}
+        open={showTrends}
+        onClose={() => setShowTrends(false)}
+      />
     </Card>
   );
 }

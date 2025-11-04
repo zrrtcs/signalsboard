@@ -67,7 +67,7 @@ if [ "$ENVIRONMENT" == "development" ]; then
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "🚀 Starting containers (detached)..."
-        docker compose up -d
+        docker compose --env-file .env.local up -d
         echo "✅ Containers started in background"
         echo "   View logs: docker compose logs -f"
         echo "   Stop containers: docker compose down"

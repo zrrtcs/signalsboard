@@ -54,6 +54,7 @@ export interface Patient {
   admittedAt: string;
   attendingPhysician?: string;
   primaryDiagnosis?: string;
+  injectionModeEnabled?: boolean; // ← Database persisted state
 
   // Navigation properties
   bed?: Bed;

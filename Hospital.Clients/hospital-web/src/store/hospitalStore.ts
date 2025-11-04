@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Patient, Alert, ConnectionStatus, VitalSignsUpdate, AlertNotification } from '../types/hospital';
+import type { Patient, Alert, ConnectionStatus, VitalSignsUpdate, AlertNotification, PatientStatus } from '../types/hospital';
 
 /**
  * Hospital Dashboard State Management
@@ -65,10 +65,17 @@ export const useHospitalStore = create<HospitalState>((set) => ({
       // Ensure vitalSigns is always an array (API returns latestVitals object initially)
       const existingVitals = Array.isArray(patient.vitalSigns) ? patient.vitalSigns : [];
 
-      // Update patient with new vitals (keep last 20 for sparkline)
+      // Map alertSeverity from SignalR to patient status
+      // This ensures CRITICAL/WATCH pills update in real-time across all clients
+      const statusFromSeverity: PatientStatus = update.alertSeverity === 'Critical' ? 'critical'
+        : update.alertSeverity === 'High' ? 'watch'
+        : 'stable';
+
+      // Update patient with new vitals (keep last 20 for sparkline) and status
       const updatedPatient = {
         ...patient,
         vitalSigns: [newVitals, ...existingVitals].slice(0, 20),
+        status: statusFromSeverity, // ← Update status for real-time CRITICAL/WATCH pills
       };
 
       patients.set(update.patientId, updatedPatient);

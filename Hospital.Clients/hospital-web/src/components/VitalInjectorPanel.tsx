@@ -52,6 +52,8 @@ export function VitalInjectorPanel() {
     bpDiastolic: '',
   });
 
+  const [criticalMode, setCriticalMode] = useState<'none' | 'hr' | 'spo2' | 'bp'>('none');
+
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
@@ -79,6 +81,32 @@ export function VitalInjectorPanel() {
 
   const handlePatientChange = (event: any) => {
     setSelectedPatientId(event.target.value);
+  };
+
+  const handleMakeCritical = () => {
+    // Auto-fill critical values based on selected category
+    const criticalValues = {
+      heartRate: '135', // >= 130 is critical
+      spO2: '85',       // < 88 is critical
+      bpSystolic: '185', // >= 180 is critical
+      bpDiastolic: '112', // >= 110 is critical
+    };
+
+    switch (criticalMode) {
+      case 'hr':
+        setFormData({ ...criticalValues, spO2: '97', bpSystolic: '125', bpDiastolic: '80' });
+        break;
+      case 'spo2':
+        setFormData({ ...criticalValues, heartRate: '85', bpSystolic: '125', bpDiastolic: '80' });
+        break;
+      case 'bp':
+        setFormData({ ...criticalValues, heartRate: '85', spO2: '97' });
+        break;
+      default:
+        return;
+    }
+
+    setSuccessMessage(`🔴 Critical ${criticalMode.toUpperCase()} values loaded! Toggle injection mode ON, then inject.`);
   };
 
   const validateForm = () => {
@@ -273,6 +301,39 @@ export function VitalInjectorPanel() {
                 </div>
               </Box>
             )}
+
+            {/* Make Critical Feature */}
+            <Box sx={{ p: 1.5, bgcolor: '#fff3e0', borderRadius: 1, border: '1px solid #ffb74d' }}>
+              <div style={{ fontSize: '0.875rem', color: '#e65100', fontWeight: 500, marginBottom: '8px' }}>
+                🔴 Quick Test: Make Patient CRITICAL
+              </div>
+              <Stack spacing={1} direction="row">
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel>Select Vital</InputLabel>
+                  <Select
+                    value={criticalMode}
+                    onChange={(e) => setCriticalMode(e.target.value as any)}
+                    label="Select Vital"
+                    disabled={loading}
+                  >
+                    <MenuItem value="none">-- Choose --</MenuItem>
+                    <MenuItem value="hr">Heart Rate (≥130 BPM)</MenuItem>
+                    <MenuItem value="spo2">SpO₂ (&lt;88%)</MenuItem>
+                    <MenuItem value="bp">Blood Pressure (≥180/110)</MenuItem>
+                  </Select>
+                </FormControl>
+                <Button
+                  onClick={handleMakeCritical}
+                  variant="contained"
+                  color="error"
+                  size="small"
+                  disabled={loading || criticalMode === 'none'}
+                  sx={{ whiteSpace: 'nowrap' }}
+                >
+                  Load Critical
+                </Button>
+              </Stack>
+            </Box>
 
             {/* Vital Signs Input Fields */}
             <TextField

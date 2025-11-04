@@ -44,6 +44,9 @@ public class VitalSignsSimulatorService : BackgroundService
         // Wait for database to be ready
         await Task.Delay(3000, stoppingToken);
 
+        // Load injection mode state from database
+        await LoadInjectionModeFromDatabase();
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -267,6 +270,36 @@ public class VitalSignsSimulatorService : BackgroundService
         _logger.LogInformation(
             "Injected vitals recorded for patient {PatientId}: HR={HR}, SpO2={SpO2}, BP={BP}/{BPDia}",
             patientId, vitals.HeartRate, vitals.SpO2, vitals.BpSystolic, vitals.BpDiastolic);
+    }
+
+    /// <summary>
+    /// Load injection mode state from database on startup.
+    /// Ensures simulator respects persisted toggle state after server restart.
+    /// </summary>
+    private async Task LoadInjectionModeFromDatabase()
+    {
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<HospitalDbContext>();
+
+            var patientsWithInjectionMode = await dbContext.Patients
+                .Where(p => p.InjectionModeEnabled)
+                .Select(p => p.Id)
+                .ToListAsync();
+
+            foreach (var patientId in patientsWithInjectionMode)
+            {
+                _injectionModeEnabled[patientId] = true;
+                _logger.LogInformation("Loaded injection mode ENABLED for patient {PatientId}", patientId);
+            }
+
+            _logger.LogInformation("Injection mode state loaded from database. {Count} patients in injection mode", patientsWithInjectionMode.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading injection mode state from database");
+        }
     }
 
     /// <summary>
