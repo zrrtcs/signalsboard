@@ -87,6 +87,29 @@ export function VitalInjectorPanel() {
     setSelectedPatientId(event.target.value);
   };
 
+  const handleToggleInjectionMode = async (patientId: string, enabled: boolean) => {
+    setTogglingInjectionMode(true);
+    setErrorMessage(null);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+      const response = await fetch(
+        `${apiUrl}/simulator/patient/${patientId}/injection-mode?enabled=${enabled}`,
+        { method: 'POST' }
+      );
+      if (response.ok) {
+        toggleInjectionModeInStore(patientId, enabled);
+        console.log(`Injection mode ${enabled ? 'ENABLED' : 'DISABLED'} for patient ${patientId}`);
+      } else {
+        setErrorMessage('Failed to toggle injection mode');
+      }
+    } catch (error) {
+      console.error('Error toggling injection mode:', error);
+      setErrorMessage('Failed to toggle injection mode');
+    } finally {
+      setTogglingInjectionMode(false);
+    }
+  };
+
   const handleMakeCritical = () => {
     // Auto-fill critical values based on selected category
     const criticalValues = {
@@ -183,6 +206,13 @@ export function VitalInjectorPanel() {
 
     try {
       setLoading(true);
+
+      // Auto-enable injection mode if not already enabled
+      if (selectedPatient && !selectedPatient.injectionModeEnabled) {
+        await handleToggleInjectionMode(selectedPatientId, true);
+        // Brief delay to ensure API completes
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
 
       const request: VitalSignsInjectionRequest = {
         patientId: selectedPatientId,
@@ -303,6 +333,44 @@ export function VitalInjectorPanel() {
                   SpO₂: {selectedPatient.vitalSigns[0]?.spO2 || '--'}% |
                   BP: {selectedPatient.vitalSigns[0]?.bpSystolic || '--'}/{selectedPatient.vitalSigns[0]?.bpDiastolic || '--'}
                 </div>
+              </Box>
+            )}
+
+            {/* Injection Mode Status Panel */}
+            {selectedPatient && (
+              <Box
+                sx={{
+                  p: 1.5,
+                  bgcolor: selectedPatient.injectionModeEnabled ? '#fff3e0' : '#f5f5f5',
+                  borderRadius: 1,
+                  border: `1px solid ${selectedPatient.injectionModeEnabled ? '#ffb74d' : '#ccc'}`,
+                }}
+              >
+                <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '8px' }}>
+                  💉 Injection Mode Status:
+                </div>
+                <div style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: selectedPatient.injectionModeEnabled ? '#e65100' : '#666',
+                  marginBottom: '8px',
+                }}>
+                  {selectedPatient.injectionModeEnabled ? '🟠 ENABLED' : '⚪ DISABLED'}
+                </div>
+                <Button
+                  onClick={() => handleToggleInjectionMode(selectedPatientId, !selectedPatient.injectionModeEnabled)}
+                  disabled={loading || togglingInjectionMode}
+                  variant="outlined"
+                  size="small"
+                  sx={{
+                    borderColor: selectedPatient.injectionModeEnabled ? '#ff9800' : '#999',
+                    color: selectedPatient.injectionModeEnabled ? '#ff9800' : '#666',
+                    textTransform: 'none',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  {togglingInjectionMode ? 'Toggling...' : (selectedPatient.injectionModeEnabled ? 'Disable' : 'Enable')}
+                </Button>
               </Box>
             )}
 

@@ -122,9 +122,22 @@ export const useHospitalStore = create<HospitalState>((set, get) => ({
   })),
 
   toggleInjectionMode: (patientId, enabled) => set((state) => {
+    // Update the injectionModeEnabled map for optimistic updates
     const injectionModeEnabled = new Map(state.injectionModeEnabled);
     injectionModeEnabled.set(patientId, enabled);
-    return { injectionModeEnabled };
+
+    // CRITICAL: Also update the patient object so PatientCard reads the correct value
+    // This ensures that both the Map and the Patient object stay in sync
+    const patients = new Map(state.patients);
+    const patient = patients.get(patientId);
+    if (patient) {
+      patients.set(patientId, {
+        ...patient,
+        injectionModeEnabled: enabled,
+      });
+    }
+
+    return { injectionModeEnabled, patients };
   }),
 
   setNurseAttending: (patientId) => set({

@@ -36,11 +36,9 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
   const isNurseAttending = nurseAttendingPatientId === patient.id;
 
   // Read injection mode from patient object (database source of truth)
-  // During toggle, Zustand store updates optimistically, but DB state is authoritative
-  const injectionModeFromDB = patient.injectionModeEnabled ?? false;
-  const injectionModeFromStore = useHospitalStore(state => state.injectionModeEnabled.get(patient.id) ?? false);
-  // Use store value if it's been toggled (optimistic), otherwise use DB value
-  const injectionModeEnabled = injectionModeFromStore !== injectionModeFromDB ? injectionModeFromStore : injectionModeFromDB;
+  // On page load, always trust the DB. Store is only for optimistic updates during toggle.
+  // BUG FIX: Previous logic used store's false default instead of DB value on reload
+  const injectionModeEnabled = patient.injectionModeEnabled ?? false;
   const toggleInjectionMode = useHospitalStore(state => state.toggleInjectionMode);
 
   const vitalsList = Array.isArray(patient.vitalSigns) ? patient.vitalSigns : [];
