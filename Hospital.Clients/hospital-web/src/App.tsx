@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, Chip, CircularProgress } from '@mui/material';
-import { SignalCellularAlt as SignalIcon } from '@mui/icons-material';
+import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, Chip, CircularProgress, IconButton } from '@mui/material';
+import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon } from '@mui/icons-material';
 import { useHospitalSignalR } from './hooks/useHospitalSignalR';
 import { useHospitalStore } from './store/hospitalStore';
+import { useAudioAlert } from './hooks/useAudioAlert';
 import { PatientGrid } from './components/PatientGrid';
 import { VitalInjectorPanel } from './components/VitalInjectorPanel';
 import { hospitalApi, mockPatients } from './services/hospitalApi';
@@ -48,8 +49,17 @@ const theme = createTheme({
 function App() {
   const { connectionStatus } = useHospitalSignalR();
   const { patients, setPatients } = useHospitalStore();
+  const { toggleGlobalMute } = useAudioAlert();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [globalMuted, setGlobalMuted] = useState(true);
+
+  // Initialize global mute state from localStorage
+  // Default: true (MUTED) - ensures audio doesn't surprise users on first load
+  useEffect(() => {
+    const stored = localStorage.getItem('hospital:global-mute');
+    setGlobalMuted(stored ? JSON.parse(stored) : true);
+  }, []);
 
   // Load initial patient data
   useEffect(() => {
@@ -113,6 +123,27 @@ function App() {
             <Typography variant="h5" component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
               Hospital Vital Signs Dashboard
             </Typography>
+
+            {/* Global Audio Mute Button */}
+            <IconButton
+              onClick={() => {
+                toggleGlobalMute();
+                setGlobalMuted(!globalMuted);
+              }}
+              sx={{
+                color: globalMuted ? '#f44336' : 'inherit',
+                mr: 2,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  transform: 'scale(1.1)',
+                },
+              }}
+              title={globalMuted ? '🔇 Global Mute: ON (all alerts silenced)' : '🔊 Global Mute: OFF (alerts enabled)'}
+            >
+              {globalMuted ? <MuteIcon /> : <UnmuteIcon />}
+            </IconButton>
+
             <Chip
               label={getConnectionLabel()}
               color={getConnectionColor()}

@@ -22,6 +22,8 @@ interface HospitalState {
   showAlertsOnly: boolean;
   selectedPatientId?: string; // For trend chart modal
   injectionModeEnabled: Map<string, boolean>; // Track which patients have injection mode ON
+  nurseAttendingPatientId?: string; // Track which patient has nurse attending
+  patientMutesBeforeNurseAttending: Map<string, boolean>; // Store original mute state for restore
 
   // Actions
   setPatients: (patients: Patient[]) => void;
@@ -33,6 +35,9 @@ interface HospitalState {
   setSelectedPatient: (patientId?: string) => void;
   acknowledgeAlert: (alertId: string) => void;
   toggleInjectionMode: (patientId: string, enabled: boolean) => void;
+  setNurseAttending: (patientId?: string) => void;
+  storeOriginalMuteState: (patientId: string, isMuted: boolean) => void;
+  getOriginalMuteState: (patientId: string) => boolean | undefined;
 }
 
 export const useHospitalStore = create<HospitalState>((set) => ({

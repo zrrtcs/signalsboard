@@ -6,9 +6,12 @@ import {
   TrendingUp as BPIcon,
   LocalHospital as BedIcon,
   Speed as SpeedIcon,
+  VolumeOff as MuteIcon,
+  VolumeUp as UnmuteIcon,
 } from '@mui/icons-material';
 import type { Patient, AlertSeverity } from '../types/hospital';
 import { useHospitalStore } from '../store/hospitalStore';
+import { useAudioAlert } from '../hooks/useAudioAlert';
 import { VitalTrendsChart } from './VitalTrendsChart';
 import { VitalSparkline } from './VitalSparkline';
 
@@ -20,6 +23,11 @@ interface PatientCardProps {
 export function PatientCard({ patient, onClick }: PatientCardProps) {
   const [togglingInjection, setTogglingInjection] = useState(false);
   const [showTrends, setShowTrends] = useState(false);
+
+  // Audio alert hook - manages critical event sounds and per-patient mute settings
+  const { togglePatientMute, isPatientMuted } = useAudioAlert();
+  const isMuted = isPatientMuted(patient.id);
+
   // Read injection mode from patient object (database source of truth)
   // During toggle, Zustand store updates optimistically, but DB state is authoritative
   const injectionModeFromDB = patient.injectionModeEnabled ?? false;
@@ -97,10 +105,17 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
           transform: 'translateY(-4px)',
           boxShadow: 6,
         } : {},
-        animation: severity === 'Critical' ? 'pulse 2s ease-in-out infinite' : 'none',
-        '@keyframes pulse': {
-          '0%, 100%': { boxShadow: `0 0 0 0 ${getBorderColor()}40` },
-          '50%': { boxShadow: `0 0 0 10px ${getBorderColor()}00` },
+        // Critical status: pulsing border + outer glow
+        animation: severity === 'Critical' ? 'criticalPulse 1.5s ease-in-out infinite' : 'none',
+        '@keyframes criticalPulse': {
+          '0%, 100%': {
+            borderLeft: `6px solid ${getBorderColor()}`,
+            boxShadow: `0 0 0 0 ${getBorderColor()}60, inset 0 0 10px ${getBorderColor()}20`,
+          },
+          '50%': {
+            borderLeft: `6px solid ${getBorderColor()}dd`,
+            boxShadow: `0 0 0 12px ${getBorderColor()}00, inset 0 0 15px ${getBorderColor()}40`,
+          },
         },
       }}
     >
@@ -111,21 +126,50 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
             <Typography variant="h6" component="div" fontWeight={600}>
               {patient.name}
             </Typography>
-            <IconButton
-              size="small"
-              onClick={handleToggleInjection}
-              disabled={togglingInjection}
-              sx={{
-                color: injectionModeEnabled ? '#ff9800' : 'inherit',
-                transition: 'color 0.3s ease',
-                '&:hover': {
-                  color: injectionModeEnabled ? '#ff6f00' : '#999',
-                },
-              }}
-              title={injectionModeEnabled ? '💉 Injection Mode: ON' : '💉 Injection Mode: OFF'}
-            >
-              <SpeedIcon />
-            </IconButton>
+            <Stack direction="row" spacing={0.5}>
+              {/* Audio Mute Button - Visible for all, especially critical patients */}
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePatientMute(patient.id);
+                }}
+                sx={{
+                  color: isMuted ? '#666' : 'inherit',
+                  transition: 'color 0.3s ease',
+                  '&:hover': {
+                    color: isMuted ? '#999' : '#f44336',
+                  },
+                  ...(patient.status === 'critical' && isMuted && {
+                    animation: 'pulse-mute 1.5s ease-in-out infinite',
+                    '@keyframes pulse-mute': {
+                      '0%, 100%': { opacity: 1 },
+                      '50%': { opacity: 0.6 },
+                    },
+                  }),
+                }}
+                title={isMuted ? '🔇 Audio Muted (Critical alert)' : '🔊 Audio Active'}
+              >
+                {isMuted ? <MuteIcon /> : <UnmuteIcon />}
+              </IconButton>
+
+              {/* Injection Mode Button */}
+              <IconButton
+                size="small"
+                onClick={handleToggleInjection}
+                disabled={togglingInjection}
+                sx={{
+                  color: injectionModeEnabled ? '#ff9800' : 'inherit',
+                  transition: 'color 0.3s ease',
+                  '&:hover': {
+                    color: injectionModeEnabled ? '#ff6f00' : '#999',
+                  },
+                }}
+                title={injectionModeEnabled ? '💉 Injection Mode: ON' : '💉 Injection Mode: OFF'}
+              >
+                <SpeedIcon />
+              </IconButton>
+            </Stack>
           </Box>
           <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
             <Chip
