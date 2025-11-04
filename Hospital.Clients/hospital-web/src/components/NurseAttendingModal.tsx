@@ -295,7 +295,7 @@ export function NurseAttendingModal({ patient, open, onClose }: NurseAttendingMo
           )}
 
           {/* Nurse Attending Toggle */}
-          <Box sx={{ p: 1.5, bgcolor: '#e8f5e9', borderRadius: 1, border: '1px solid #66bb6a' }}>
+          <Box sx={{ p: 1.5, bgcolor: '#66bb6a', borderRadius: 1, border: '1px solid #81c784' }}>
             <FormControlLabel
               control={
                 <Switch
@@ -304,21 +304,21 @@ export function NurseAttendingModal({ patient, open, onClose }: NurseAttendingMo
                   disabled={loading}
                   sx={{
                     '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: '#66bb6a',
+                      color: '#1b4d2e',
                     },
                     '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: '#66bb6a',
+                      backgroundColor: '#1b4d2e',
                     },
                   }}
                 />
               }
               label={
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: '#000' }}>
                   {isNurseAttending ? '👨‍⚕️ Nurse Attending (Audio Muted)' : 'Toggle Nurse Attending'}
                 </Typography>
               }
             />
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+            <Typography variant="caption" sx={{ display: 'block', mt: 1, color: '#1a3a24', fontWeight: 500 }}>
               {isNurseAttending
                 ? 'Patient audio is muted while you attend. It will be restored when you finish.'
                 : 'Toggle to start attending this patient.'}

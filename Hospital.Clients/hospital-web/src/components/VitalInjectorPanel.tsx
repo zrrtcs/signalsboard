@@ -303,8 +303,8 @@ export function VitalInjectorPanel() {
             )}
 
             {/* Make Critical Feature */}
-            <Box sx={{ p: 1.5, bgcolor: '#fff3e0', borderRadius: 1, border: '1px solid #ffb74d' }}>
-              <div style={{ fontSize: '0.875rem', color: '#e65100', fontWeight: 500, marginBottom: '8px' }}>
+            <Box sx={{ p: 1.5, bgcolor: '#ff9800', borderRadius: 1, border: '1px solid #ffb300' }}>
+              <div style={{ fontSize: '0.875rem', color: '#000', fontWeight: 600, marginBottom: '8px' }}>
                 🔴 Quick Test: Make Patient CRITICAL
               </div>
               <Stack spacing={1} direction="row">
@@ -328,7 +328,14 @@ export function VitalInjectorPanel() {
                   color="error"
                   size="small"
                   disabled={loading || criticalMode === 'none'}
-                  sx={{ whiteSpace: 'nowrap' }}
+                  sx={{
+                    whiteSpace: 'nowrap',
+                    '&.Mui-disabled': {
+                      backgroundColor: '#cc5555',
+                      color: '#fff',
+                      opacity: 0.6,
+                    },
+                  }}
                 >
                   Load Critical
                 </Button>
