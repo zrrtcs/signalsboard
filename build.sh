@@ -63,11 +63,14 @@ fi
 # For development, optionally start containers
 if [ "$ENVIRONMENT" == "development" ]; then
     echo ""
-    read -p "Start docker-compose? (y/n) " -n 1 -r
+    read -p "Start containers? (y/n) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo "🚀 Starting containers..."
-        docker-compose up
+        echo "🚀 Starting containers (detached)..."
+        docker compose up -d
+        echo "✅ Containers started in background"
+        echo "   View logs: docker compose logs -f"
+        echo "   Stop containers: docker compose down"
     fi
 fi
 
