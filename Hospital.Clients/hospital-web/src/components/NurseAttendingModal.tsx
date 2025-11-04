@@ -327,9 +327,39 @@ export function NurseAttendingModal({ patient, open, onClose }: NurseAttendingMo
 
           {/* Vital Signs Input Fields */}
           <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-              💉 Inject Vital Signs (optional)
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                💉 Inject Vital Signs (optional)
+              </Typography>
+              <Stack direction="row" spacing={0.5}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setFormData({
+                    heartRate: '75',
+                    spO2: '98',
+                    bpSystolic: '120',
+                    bpDiastolic: '80',
+                  })}
+                  sx={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                >
+                  Healthy
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setFormData({
+                    heartRate: '',
+                    spO2: '',
+                    bpSystolic: '',
+                    bpDiastolic: '',
+                  })}
+                  sx={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                >
+                  Clear
+                </Button>
+              </Stack>
+            </Box>
 
             <TextField
               label="Heart Rate (BPM)"
