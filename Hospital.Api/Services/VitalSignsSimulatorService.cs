@@ -226,10 +226,19 @@ public class VitalSignsSimulatorService : BackgroundService
     /// <summary>
     /// Toggle injection mode for a specific patient.
     /// When enabled, simulator uses last injected vitals as baseline with drift.
+    /// When disabled, clears injected baseline and resumes normal random simulation.
     /// </summary>
     public void SetInjectionMode(string patientId, bool enabled)
     {
         _injectionModeEnabled[patientId] = enabled;
+
+        // When disabling injection mode, clear the stored injected vitals
+        // so the simulator resumes generating from the current vital baseline
+        if (!enabled)
+        {
+            _lastInjectedVitals.Remove(patientId);
+        }
+
         var modeStatus = enabled ? "ENABLED" : "DISABLED";
         _logger.LogInformation("Injection mode {Status} for patient {PatientId}", modeStatus, patientId);
     }
