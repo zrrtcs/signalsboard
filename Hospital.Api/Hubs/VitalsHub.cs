@@ -73,6 +73,12 @@ public interface IVitalsClient
     /// Broadcasts alert generation to all connected clients.
     /// </summary>
     Task ReceiveAlert(AlertNotification alert);
+
+    /// <summary>
+    /// Broadcasts injection mode toggle to all connected clients.
+    /// Ensures all browsers sync when one client toggles injection mode.
+    /// </summary>
+    Task ReceiveInjectionModeChange(InjectionModeChange change);
 }
 
 /// <summary>
@@ -103,4 +109,15 @@ public record AlertNotification(
     string Severity,
     string Message,
     DateTime TriggeredAt
+);
+
+/// <summary>
+/// DTO for injection mode changes sent via SignalR.
+/// Broadcast to all clients when injection mode is toggled.
+/// </summary>
+public record InjectionModeChange(
+    string PatientId,
+    string PatientName,
+    bool InjectionModeEnabled,
+    DateTime ChangedAt
 );

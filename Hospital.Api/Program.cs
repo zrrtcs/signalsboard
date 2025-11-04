@@ -240,7 +240,8 @@ app.MapPost("/api/simulator/patient/{id}/injection-mode", async (
     string id,
     bool enabled,
     HospitalDbContext db,
-    VitalSignsSimulatorService simulatorService) =>
+    VitalSignsSimulatorService simulatorService,
+    IHubContext<VitalsHub, IVitalsClient> hubContext) =>
 {
     // Fetch patient from database
     var patient = await db.Patients.FirstOrDefaultAsync(p => p.Id == id);
@@ -253,6 +254,15 @@ app.MapPost("/api/simulator/patient/{id}/injection-mode", async (
 
     // Update in-memory simulator state
     simulatorService.SetInjectionMode(id, enabled);
+
+    // Broadcast change to all connected clients (same pattern as vital updates)
+    var change = new InjectionModeChange(
+        patient.Id,
+        patient.Name,
+        enabled,
+        DateTime.UtcNow
+    );
+    await hubContext.Clients.All.ReceiveInjectionModeChange(change);
 
     var modeStatus = enabled ? "ENABLED" : "DISABLED";
     return Results.Ok(new { patientId = id, injectionMode = modeStatus });

@@ -85,6 +85,12 @@ export function useHospitalSignalR() {
       }
     });
 
+    connection.on('ReceiveInjectionModeChange', (change: any) => {
+      console.log('💉 Injection mode change:', change);
+      // Update Zustand store with new injection mode state
+      useHospitalStore.getState().toggleInjectionMode(change.patientId, change.injectionModeEnabled);
+    });
+
     // Connection lifecycle events
     connection.onreconnecting(() => {
       console.log('🔄 Reconnecting...');
