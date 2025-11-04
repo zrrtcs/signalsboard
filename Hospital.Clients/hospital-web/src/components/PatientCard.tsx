@@ -279,7 +279,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
             {/* Sparkline - Click to see full trends */}
             <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #eee' }}>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                4-hour Trend (HR)
+                Vital Signs Trend (Last 15 readings)
               </Typography>
               <VitalSparkline patient={patient} onClick={() => setShowTrends(true)} />
             </Box>
