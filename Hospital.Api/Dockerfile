@@ -4,6 +4,12 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim AS runtime
 # Use Debian-based SDK for building
 FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim AS build
 
+# Build configuration arguments
+# BUILD_CONFIGURATION: Debug or Release (default: Release for production)
+# ASPNETCORE_ENVIRONMENT: Development or Production (default: Production)
+ARG BUILD_CONFIGURATION=Release
+ARG ASPNETCORE_ENVIRONMENT=Production
+
 # Set working directory
 WORKDIR /src
 
@@ -17,15 +23,18 @@ COPY . .
 
 # Build and publish the application
 WORKDIR "/src/Hospital.Api"
-RUN dotnet build "Hospital.Api.csproj" -c Release -o /app/build
-RUN dotnet publish "Hospital.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet build "Hospital.Api.csproj" -c ${BUILD_CONFIGURATION} -o /app/build
+RUN dotnet publish "Hospital.Api.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish /p:UseAppHost=false
 
 # Create final runtime image
 FROM runtime AS final
 WORKDIR /app
 
-# Install curl for health checks
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install curl for health checks and debugging tools
+RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/*
+
+# Install Visual Studio Debugger (vsdbg) for remote debugging
+RUN curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg
 
 # Copy published application
 COPY --from=build /app/publish .
@@ -41,9 +50,9 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8080/health || exit 1
 
-# Set environment variables
+# Set environment variables (use ARG value passed from build script)
 ENV ASPNETCORE_URLS=http://+:8080
-ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
 
 # Entry point
 ENTRYPOINT ["dotnet", "Hospital.Api.dll"]
