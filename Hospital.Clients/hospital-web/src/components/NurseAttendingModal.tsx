@@ -32,11 +32,13 @@ export function NurseAttendingModal({ patient, open, onClose }: NurseAttendingMo
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isNurseAttending, setIsNurseAttending] = useState(false);
+  const [togglingInjectionMode, setTogglingInjectionMode] = useState(false);
 
   // Store actions for managing nurse attending state
   const setNurseAttending = useHospitalStore(state => state.setNurseAttending);
   const storeOriginalMuteState = useHospitalStore(state => state.storeOriginalMuteState);
   const getOriginalMuteState = useHospitalStore(state => state.getOriginalMuteState);
+  const toggleInjectionModeInStore = useHospitalStore(state => state.toggleInjectionMode);
 
   // Audio alert hook
   const { togglePatientMute, isPatientMuted } = useAudioAlert();
@@ -171,6 +173,31 @@ export function NurseAttendingModal({ patient, open, onClose }: NurseAttendingMo
     return true;
   };
 
+  const handleToggleInjectionMode = async (enabled: boolean) => {
+    setTogglingInjectionMode(true);
+    setErrorMessage(null);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+      const response = await fetch(
+        `${apiUrl}/simulator/patient/${patient.id}/injection-mode?enabled=${enabled}`,
+        { method: 'POST' }
+      );
+
+      if (response.ok) {
+        toggleInjectionModeInStore(patient.id, enabled);
+        console.log(`Injection mode ${enabled ? 'ENABLED' : 'DISABLED'} for ${patient.name}`);
+      } else {
+        setErrorMessage('Failed to toggle injection mode');
+      }
+    } catch (error) {
+      console.error('Error toggling injection mode:', error);
+      setErrorMessage('Failed to toggle injection mode');
+    } finally {
+      setTogglingInjectionMode(false);
+    }
+  };
+
   const handleInjectVitals = async () => {
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -179,6 +206,11 @@ export function NurseAttendingModal({ patient, open, onClose }: NurseAttendingMo
 
     try {
       setLoading(true);
+
+      // Auto-enable injection mode if not already enabled
+      if (!patient.injectionModeEnabled) {
+        await handleToggleInjectionMode(true);
+      }
 
       const request: VitalSignsInjectionRequest = {
         patientId: patient.id,
@@ -322,6 +354,37 @@ export function NurseAttendingModal({ patient, open, onClose }: NurseAttendingMo
               {isNurseAttending
                 ? 'Patient audio is muted while you attend. It will be restored when you finish.'
                 : 'Toggle to start attending this patient.'}
+            </Typography>
+          </Box>
+
+          {/* Injection Mode Status + Toggle */}
+          <Box sx={{ p: 1.5, bgcolor: patient.injectionModeEnabled ? '#fff3e0' : '#f5f5f5', borderRadius: 1, border: `1px solid ${patient.injectionModeEnabled ? '#ffb74d' : '#ccc'}` }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={patient.injectionModeEnabled ?? false}
+                  onChange={(e) => handleToggleInjectionMode(e.target.checked)}
+                  disabled={togglingInjectionMode || loading}
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: '#ff9800',
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: '#ff9800',
+                    },
+                  }}
+                />
+              }
+              label={
+                <Typography variant="body2" sx={{ fontWeight: 600, color: patient.injectionModeEnabled ? '#e65100' : '#666' }}>
+                  {patient.injectionModeEnabled ? '💉 Injection Mode: ON' : '💉 Injection Mode: OFF'}
+                </Typography>
+              }
+            />
+            <Typography variant="caption" sx={{ display: 'block', mt: 1, color: patient.injectionModeEnabled ? '#b71c1c' : '#666', fontWeight: 500 }}>
+              {patient.injectionModeEnabled
+                ? 'Simulator uses injected vitals as baseline with realistic drift.'
+                : 'Enable to inject vitals. Will auto-enable when you inject.'}
             </Typography>
           </Box>
 

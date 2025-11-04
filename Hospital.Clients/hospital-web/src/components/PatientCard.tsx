@@ -202,7 +202,15 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
               </IconButton>
             </Stack>
           </Box>
-          <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+            <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              mt: 0.5,
+              flexWrap: 'wrap',
+              gap: 1, // Add gap for better spacing when wrapping
+            }}
+            >
             <Chip
               icon={<BedIcon />}
               label={patient.bed?.number || 'No Bed'}
@@ -219,7 +227,17 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
               size="small"
               color={patient.status === 'critical' ? 'error' : patient.status === 'watch' ? 'warning' : 'success'}
             />
-          </Stack>
+            <Chip
+              label={injectionModeEnabled ? '💉 Injection: ON' : '💉 Injection: OFF'}
+              size="small"
+              variant="outlined"
+              sx={{
+              borderColor: injectionModeEnabled ? '#ff9800' : '#999',
+              color: injectionModeEnabled ? '#ff9800' : '#999',
+              fontWeight: 500,
+              }}
+            />
+            </Stack>
         </Box>
 
         {/* Vital Signs */}

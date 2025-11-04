@@ -41,8 +41,12 @@ export function VitalInjectorPanel() {
   const [open, setOpen] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [togglingInjectionMode, setTogglingInjectionMode] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Store access
+  const toggleInjectionModeInStore = useHospitalStore(state => state.toggleInjectionMode);
 
   // Form state
   const [formData, setFormData] = useState({
