@@ -20,8 +20,8 @@ public class VitalSignsSimulatorService : BackgroundService
     // Simulation parameters
     private const int UpdateIntervalMs = 2500; // Update every 2.5 seconds
     private const int PatientsToUpdatePerCycle = 3; // Update 3-5 patients per cycle
-    private const double AbnormalVitalsProbability = 0.20; // 20% chance
-    private const double CriticalVitalsProbability = 0.05; // 5% chance
+    private const double AbnormalVitalsProbability = 0.15; // 15% chance of abnormal
+    private const double CriticalVitalsProbability = 0.08; // 8% chance of critical event
 
     // Injection mode tracking (per-patient)
     private Dictionary<string, bool> _injectionModeEnabled = new();
@@ -175,9 +175,13 @@ public class VitalSignsSimulatorService : BackgroundService
         }
         else
         {
-            // Gradual drift ±5 BPM, constrained to normal range
+            // Gradual drift ±5 BPM
+            // In injection mode: allow critical values to persist with drift
+            // Normal mode: constrain to safe range (60-100)
             var drift = _random.Next(-5, 6);
-            vitals.HeartRate = Math.Clamp(baseHR + drift, 60, 100);
+            vitals.HeartRate = isInjectionMode
+                ? baseHR + drift
+                : Math.Clamp(baseHR + drift, 60, 100);
         }
 
         // Generate SpO2 with realistic behavior
@@ -192,9 +196,13 @@ public class VitalSignsSimulatorService : BackgroundService
         }
         else
         {
-            // SpO2 typically very stable in healthy patients
+            // SpO2 typically very stable in healthy patients (±1-2%)
+            // In injection mode: allow critical values to persist with drift
+            // Normal mode: constrain to safe range (95-100)
             var drift = _random.Next(-1, 2);
-            vitals.SpO2 = Math.Clamp(baseSpO2 + drift, 95, 100);
+            vitals.SpO2 = isInjectionMode
+                ? baseSpO2 + drift
+                : Math.Clamp(baseSpO2 + drift, 95, 100);
         }
 
         // Generate blood pressure
@@ -214,10 +222,16 @@ public class VitalSignsSimulatorService : BackgroundService
         else
         {
             // Gradual drift ±8 mmHg for systolic, ±5 for diastolic
+            // In injection mode: allow critical values to persist with drift
+            // Normal mode: constrain to safe range
             var sysDrift = _random.Next(-8, 9);
             var diasDrift = _random.Next(-5, 6);
-            vitals.BpSystolic = Math.Clamp(baseSystolic + sysDrift, 100, 140);
-            vitals.BpDiastolic = Math.Clamp(baseDiastolic + diasDrift, 60, 90);
+            vitals.BpSystolic = isInjectionMode
+                ? baseSystolic + sysDrift
+                : Math.Clamp(baseSystolic + sysDrift, 100, 140);
+            vitals.BpDiastolic = isInjectionMode
+                ? baseDiastolic + diasDrift
+                : Math.Clamp(baseDiastolic + diasDrift, 60, 90);
         }
 
         return vitals;
@@ -253,5 +267,23 @@ public class VitalSignsSimulatorService : BackgroundService
         _logger.LogInformation(
             "Injected vitals recorded for patient {PatientId}: HR={HR}, SpO2={SpO2}, BP={BP}/{BPDia}",
             patientId, vitals.HeartRate, vitals.SpO2, vitals.BpSystolic, vitals.BpDiastolic);
+    }
+
+    /// <summary>
+    /// Public function to compute patient status from vital signs.
+    /// Returns: critical, watch, or stable based on alert severity assessment.
+    /// </summary>
+    public string ComputePatientStatus(VitalSigns vitals)
+    {
+        if (vitals == null)
+            return "stable";
+
+        var severity = vitals.CalculateAlertSeverity();
+        return severity switch
+        {
+            AlertSeverity.Critical => "critical",
+            AlertSeverity.High => "watch",
+            _ => "stable"
+        };
     }
 }
