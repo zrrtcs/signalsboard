@@ -21,10 +21,11 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
   const [togglingInjection, setTogglingInjection] = useState(false);
   const [showTrends, setShowTrends] = useState(false);
   // Read injection mode from patient object (database source of truth)
-  // Falls back to Zustand for optimistic UI updates during toggle
+  // During toggle, Zustand store updates optimistically, but DB state is authoritative
   const injectionModeFromDB = patient.injectionModeEnabled ?? false;
   const injectionModeFromStore = useHospitalStore(state => state.injectionModeEnabled.get(patient.id) ?? false);
-  const injectionModeEnabled = injectionModeFromStore || injectionModeFromDB;
+  // Use store value if it's been toggled (optimistic), otherwise use DB value
+  const injectionModeEnabled = injectionModeFromStore !== injectionModeFromDB ? injectionModeFromStore : injectionModeFromDB;
   const toggleInjectionMode = useHospitalStore(state => state.toggleInjectionMode);
 
   const vitalsList = Array.isArray(patient.vitalSigns) ? patient.vitalSigns : [];
