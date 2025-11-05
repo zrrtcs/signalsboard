@@ -127,7 +127,9 @@ export function DashboardQRModal({ open, onClose }: DashboardQRModalProps) {
             }}
           >
             <Typography variant="caption" sx={{ color: '#e65100', display: 'block' }}>
-              💡 <strong>Tip:</strong> Works on any device on the same network. Perfect for recruiting demos!
+              💡 <strong>Tip:</strong> Works on any device on the same network.  
+              <br></br>
+              View this dashboard on another device. Perfect for multi-screen hospital setups.
             </Typography>
           </Box>
         </Stack>
