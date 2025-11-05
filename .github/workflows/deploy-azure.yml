@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: 'hospital-dashboard-prod'
+  AZURE_WEBAPP_NAME: 'hospital-dashboard-p1'
   DOTNET_VERSION: '8.0'
   NODE_VERSION: '20'
 
