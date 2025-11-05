@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, Chip, CircularProgress, IconButton } from '@mui/material';
-import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon } from '@mui/icons-material';
+import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, Chip, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon, QrCode2 as QRIcon } from '@mui/icons-material';
 import { useHospitalSignalR } from './hooks/useHospitalSignalR';
 import { useHospitalStore } from './store/hospitalStore';
 import { useAudioAlert } from './hooks/useAudioAlert';
 import { PatientGrid } from './components/PatientGrid';
 import { VitalInjectorPanel } from './components/VitalInjectorPanel';
-import { DashboardQRWidget } from './components/DashboardQRWidget';
+import { DashboardQRModal } from './components/DashboardQRModal';
 import { hospitalApi, mockPatients } from './services/hospitalApi';
 
 // Medical dashboard theme - optimized for TV displays
@@ -54,6 +54,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [globalMuted, setGlobalMuted] = useState(true);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   // Initialize global mute state from localStorage
   // Default: true (MUTED) - ensures audio doesn't surprise users on first load
@@ -126,6 +127,24 @@ function App() {
                 Hospital Vital Signs Dashboard
               </Typography>
 
+              {/* Dashboard QR Share Button */}
+              <Tooltip title="Share dashboard QR code">
+                <IconButton
+                  onClick={() => setQrModalOpen(true)}
+                  sx={{
+                    color: '#ff9800',
+                    mr: 1,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                      transform: 'scale(1.1)',
+                    },
+                  }}
+                >
+                  <QRIcon />
+                </IconButton>
+              </Tooltip>
+
               {/* Global Audio Mute Button */}
               <IconButton
                 onClick={() => {
@@ -178,8 +197,8 @@ function App() {
         {/* Vital Injector Testing Tool */}
         <VitalInjectorPanel />
 
-        {/* Dashboard QR Widget - Always visible for demo/showcase */}
-        <DashboardQRWidget />
+        {/* Dashboard QR Modal - Opens from toolbar button */}
+        <DashboardQRModal open={qrModalOpen} onClose={() => setQrModalOpen(false)} />
       </Box>
     </ThemeProvider>
   );
