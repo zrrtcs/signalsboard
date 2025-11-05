@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
 import { useHospitalStore } from '../store/hospitalStore';
 import { PatientCard } from './PatientCard';
 
@@ -15,22 +16,30 @@ export function PatientGrid() {
       container
       spacing={3}
       sx={{
-        // Ensure max 3 columns on large screens (>970px)
-        // MUI Grid size: xs=12, sm=6 (2 cols), md=4 (3 cols), lg=4 (still 3 cols), xl=4 (still 3 cols)
-        '@media (min-width: 1200px)': {
-          '& .MuiGrid-item': {
-            maxWidth: '33.333333%',
-          },
+        // Responsive grid sizing with controlled max-width
+        // Mobile (xs): 1 column (full width)
+        // Tablet (sm): 2 columns (50% each)
+        // Desktop (md): 3 columns (33.33% each) - optimal for patient cards
+        // Large (lg/xl): cap at 3 columns to prevent stretching
+        display: 'grid',
+        gridTemplateColumns: {
+          xs: '1fr',                    // 1 column on mobile
+          sm: 'repeat(2, 1fr)',         // 2 columns on tablet
+          md: 'repeat(3, 1fr)',         // 3 columns on desktop
+          lg: 'repeat(3, minmax(350px, 1fr))', // 3 cols with min-width
+          xl: 'repeat(3, minmax(350px, 1fr))', // 3 cols with min-width
         },
+        gap: 3,
+        width: '100%',
       }}
     >
       {patients.map((patient) => (
-        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={patient.id}>
+        <Box key={patient.id}>
           <PatientCard
             patient={patient}
             onClick={() => console.log('Open trend chart for', patient.id)}
           />
-        </Grid>
+        </Box>
       ))}
     </Grid>
   );

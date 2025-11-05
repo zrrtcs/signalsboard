@@ -118,43 +118,45 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ flexGrow: 1, minHeight: '100vh' }}>
-        <AppBar position="sticky" elevation={2}>
-          <Toolbar>
-            <SignalIcon sx={{ mr: 2 }} />
-            <Typography variant="h5" component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
-              Hospital Vital Signs Dashboard
-            </Typography>
+        <AppBar position="sticky" elevation={2} sx={{ width: '100%' }}>
+          <Box sx={{ maxWidth: 1400, mx: 'auto', width: '100%', px: 3 }}>
+            <Toolbar sx={{ px: 0 }}>
+              <SignalIcon sx={{ mr: 2 }} />
+              <Typography variant="h5" component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
+                Hospital Vital Signs Dashboard
+              </Typography>
 
-            {/* Global Audio Mute Button */}
-            <IconButton
-              onClick={() => {
-                toggleGlobalMute();
-                setGlobalMuted(!globalMuted);
-              }}
-              sx={{
-                color: globalMuted ? '#f44336' : 'inherit',
-                mr: 2,
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  transform: 'scale(1.1)',
-                },
-              }}
-              title={globalMuted ? '🔇 Global Mute: ON (all alerts silenced)' : '🔊 Global Mute: OFF (alerts enabled)'}
-            >
-              {globalMuted ? <MuteIcon /> : <UnmuteIcon />}
-            </IconButton>
+              {/* Global Audio Mute Button */}
+              <IconButton
+                onClick={() => {
+                  toggleGlobalMute();
+                  setGlobalMuted(!globalMuted);
+                }}
+                sx={{
+                  color: globalMuted ? '#f44336' : 'inherit',
+                  mr: 2,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    transform: 'scale(1.1)',
+                  },
+                }}
+                title={globalMuted ? '🔇 Global Mute: ON (all alerts silenced)' : '🔊 Global Mute: OFF (alerts enabled)'}
+              >
+                {globalMuted ? <MuteIcon /> : <UnmuteIcon />}
+              </IconButton>
 
-            <Chip
-              label={getConnectionLabel()}
-              color={getConnectionColor()}
-              size="medium"
-              sx={{ fontWeight: 600 }}
-            />
-          </Toolbar>
+              <Chip
+                label={getConnectionLabel()}
+                color={getConnectionColor()}
+                size="medium"
+                sx={{ fontWeight: 600 }}
+              />
+            </Toolbar>
+          </Box>
         </AppBar>
 
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: 3, maxWidth: 1400, mx: 'auto', width: '100%' }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
               <CircularProgress size={60} />

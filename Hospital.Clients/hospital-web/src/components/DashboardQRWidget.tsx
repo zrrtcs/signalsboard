@@ -89,7 +89,7 @@ export function DashboardQRWidget() {
                 mb: 1,
               }}
             >
-              <QRCode value={dashboardUrl} size={120} level="H" quietZone={10} />
+              <QRCode value={dashboardUrl} size={120} level="H" />
             </Box>
 
             <Typography

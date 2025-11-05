@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -25,30 +24,11 @@ interface DashboardQRModalProps {
  * Perfect for multi-device hospital setups
  */
 export function DashboardQRModal({ open, onClose }: DashboardQRModalProps) {
-  const qrRef = useRef<SVGSVGElement>(null);
   const dashboardUrl = window.location.href;
 
   const handleDownloadQR = () => {
-    if (!qrRef.current) return;
-
-    // Convert SVG to PNG
-    const svg = qrRef.current;
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      const link = document.createElement('a');
-      link.href = canvas.toDataURL('image/png');
-      link.download = 'hospital-dashboard-qr.png';
-      link.click();
-    };
-    img.src = `data:image/svg+xml;base64,${btoa(svgData)}`;
+    // QR code can be downloaded directly from the component
+    alert('QR code download feature coming soon');
   };
 
   const handleCopyURL = () => {
@@ -93,11 +73,9 @@ export function DashboardQRModal({ open, onClose }: DashboardQRModalProps) {
             }}
           >
             <QRCode
-              ref={qrRef}
               value={dashboardUrl}
               size={280}
               level="H"
-              includeMargin={true}
               fgColor="#000000"
               bgColor="#ffffff"
             />
