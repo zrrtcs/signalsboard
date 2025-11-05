@@ -57,6 +57,12 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 
+// Serve static files (React frontend from wwwroot)
+app.UseStaticFiles();
+
+// Fallback to index.html for SPA client-side routing
+app.MapFallbackToFile("index.html");
+
 // Apply EF migrations and seed data with error handling
 try
 {
