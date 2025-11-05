@@ -25,6 +25,9 @@ services:
 
   # Hospital API
   hospital-api:
+    build:
+      context: .
+      dockerfile: Hospital.Api/Dockerfile
     image: hospital-dashboard:${SIGNALSBOARD_ENVIRONMENT:-development}
     container_name: signalsboard-api
     environment:

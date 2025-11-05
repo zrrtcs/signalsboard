@@ -6,6 +6,7 @@ import { useHospitalStore } from './store/hospitalStore';
 import { useAudioAlert } from './hooks/useAudioAlert';
 import { PatientGrid } from './components/PatientGrid';
 import { VitalInjectorPanel } from './components/VitalInjectorPanel';
+import { DashboardQRWidget } from './components/DashboardQRWidget';
 import { hospitalApi, mockPatients } from './services/hospitalApi';
 
 // Medical dashboard theme - optimized for TV displays
@@ -174,6 +175,9 @@ function App() {
 
         {/* Vital Injector Testing Tool */}
         <VitalInjectorPanel />
+
+        {/* Dashboard QR Widget - Always visible for demo/showcase */}
+        <DashboardQRWidget />
       </Box>
     </ThemeProvider>
   );

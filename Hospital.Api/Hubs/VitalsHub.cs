@@ -79,6 +79,12 @@ public interface IVitalsClient
     /// Ensures all browsers sync when one client toggles injection mode.
     /// </summary>
     Task ReceiveInjectionModeChange(InjectionModeChange change);
+
+    /// <summary>
+    /// Broadcasts nurse attending status change to all connected clients.
+    /// Ensures all browsers sync when nurse attends/leaves patient.
+    /// </summary>
+    Task ReceiveNurseAttendingChange(NurseAttendingChange change);
 }
 
 /// <summary>
@@ -119,5 +125,16 @@ public record InjectionModeChange(
     string PatientId,
     string PatientName,
     bool InjectionModeEnabled,
+    DateTime ChangedAt
+);
+
+/// <summary>
+/// DTO for nurse attending status changes sent via SignalR.
+/// Broadcast to all clients when nurse attending status changes.
+/// </summary>
+public record NurseAttendingChange(
+    string PatientId,
+    string PatientName,
+    bool NurseAttending,
     DateTime ChangedAt
 );

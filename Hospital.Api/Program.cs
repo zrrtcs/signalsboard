@@ -270,6 +270,37 @@ app.MapPost("/api/simulator/patient/{id}/injection-mode", async (
 .WithName("ToggleInjectionMode")
 .WithOpenApi();
 
+// Nurse Attending endpoint - source of truth is database
+app.MapPost("/api/patients/{id}/nurse-attending", async (
+    string id,
+    bool attending,
+    HospitalDbContext db,
+    IHubContext<VitalsHub, IVitalsClient> hubContext) =>
+{
+    // Fetch patient from database
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Id == id);
+    if (patient == null)
+        return Results.NotFound($"Patient {id} not found");
+
+    // Update database (source of truth)
+    patient.NurseAttending = attending;
+    await db.SaveChangesAsync();
+
+    // Broadcast change to all connected clients
+    var change = new NurseAttendingChange(
+        patient.Id,
+        patient.Name,
+        attending,
+        DateTime.UtcNow
+    );
+    await hubContext.Clients.All.ReceiveNurseAttendingChange(change);
+
+    var status = attending ? "ATTENDING" : "IDLE";
+    return Results.Ok(new { patientId = id, nurseAttending = status });
+})
+.WithName("ToggleNurseAttending")
+.WithOpenApi();
+
 app.MapHealthChecks("/health");
 
 // Map SignalR Hub

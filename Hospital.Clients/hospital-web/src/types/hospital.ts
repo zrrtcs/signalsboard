@@ -55,6 +55,7 @@ export interface Patient {
   attendingPhysician?: string;
   primaryDiagnosis?: string;
   injectionModeEnabled?: boolean; // ← Database persisted state
+  nurseAttending?: boolean; // ← Database persisted state
 
   // Navigation properties
   bed?: Bed;
@@ -88,6 +89,13 @@ export interface AlertNotification {
   severity: AlertSeverity;
   message: string;
   triggeredAt: string;
+}
+
+export interface NurseAttendingChange {
+  patientId: string;
+  patientName: string;
+  nurseAttending: boolean;
+  changedAt: string;
 }
 
 /**

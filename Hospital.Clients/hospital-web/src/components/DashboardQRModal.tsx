@@ -1,0 +1,173 @@
+import { useRef } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Box,
+  Typography,
+  Stack,
+  IconButton,
+  Tooltip,
+} from '@mui/material';
+import { QrCode2 as QRIcon, IosShare as ShareIcon, ContentCopy as CopyIcon } from '@mui/icons-material';
+import QRCode from 'react-qr-code';
+
+interface DashboardQRModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+/**
+ * Dashboard QR Modal - Share dashboard link via QR code
+ * Allows users to scan and view dashboard on mobile/tablet devices
+ * Perfect for multi-device hospital setups
+ */
+export function DashboardQRModal({ open, onClose }: DashboardQRModalProps) {
+  const qrRef = useRef<SVGSVGElement>(null);
+  const dashboardUrl = window.location.href;
+
+  const handleDownloadQR = () => {
+    if (!qrRef.current) return;
+
+    // Convert SVG to PNG
+    const svg = qrRef.current;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = 'hospital-dashboard-qr.png';
+      link.click();
+    };
+    img.src = `data:image/svg+xml;base64,${btoa(svgData)}`;
+  };
+
+  const handleCopyURL = () => {
+    navigator.clipboard.writeText(dashboardUrl);
+    alert('✓ URL copied to clipboard!');
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+        },
+      }}
+    >
+      <DialogTitle sx={{ fontWeight: 600, pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <QRIcon sx={{ color: '#ff9800' }} />
+        Share Dashboard
+      </DialogTitle>
+
+      <DialogContent sx={{ pt: 3 }}>
+        <Stack spacing={3} alignItems="center" sx={{ width: '100%' }}>
+          {/* Instructions */}
+          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', fontSize: '0.95rem' }}>
+            📱 Scan with phone or tablet to view this dashboard on another device. Perfect for multi-screen hospital setups.
+          </Typography>
+
+          {/* QR Code */}
+          <Box
+            sx={{
+              p: 3,
+              bgcolor: '#fff',
+              borderRadius: 2,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              border: '1px solid #e0e0e0',
+            }}
+          >
+            <QRCode
+              ref={qrRef}
+              value={dashboardUrl}
+              size={280}
+              level="H"
+              includeMargin={true}
+              fgColor="#000000"
+              bgColor="#ffffff"
+            />
+          </Box>
+
+          {/* URL Display */}
+          <Box
+            sx={{
+              width: '100%',
+              p: 1.5,
+              bgcolor: '#1e2a38',
+              borderRadius: 1,
+              border: '1px solid #333',
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+              Dashboard URL:
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  flex: 1,
+                  wordBreak: 'break-all',
+                  fontSize: '0.75rem',
+                  color: '#90caf9',
+                  fontFamily: 'monospace',
+                  overflowWrap: 'break-word',
+                }}
+              >
+                {dashboardUrl}
+              </Typography>
+              <Tooltip title="Copy URL">
+                <IconButton size="small" onClick={handleCopyURL} sx={{ minWidth: 'auto' }}>
+                  <CopyIcon sx={{ fontSize: '1rem' }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+
+          {/* Info Box */}
+          <Box
+            sx={{
+              width: '100%',
+              p: 1.5,
+              bgcolor: '#fff3e0',
+              borderLeft: '4px solid #ff9800',
+              borderRadius: 1,
+            }}
+          >
+            <Typography variant="caption" sx={{ color: '#e65100', display: 'block' }}>
+              💡 <strong>Tip:</strong> Works on any device on the same network. Perfect for recruiting demos!
+            </Typography>
+          </Box>
+        </Stack>
+      </DialogContent>
+
+      <DialogActions sx={{ p: 2, gap: 1 }}>
+        <Button onClick={onClose} variant="outlined">
+          Close
+        </Button>
+        <Button
+          onClick={handleDownloadQR}
+          variant="contained"
+          color="warning"
+          startIcon={<ShareIcon />}
+        >
+          Download QR
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}

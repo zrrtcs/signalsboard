@@ -44,6 +44,9 @@ public class Patient
     [Column("injection_mode_enabled")]
     public bool InjectionModeEnabled { get; set; } = false;
 
+    [Column("nurse_attending")]
+    public bool NurseAttending { get; set; } = false;
+
     // Navigation properties
     [ForeignKey("BedId")]
     public virtual Bed? Bed { get; set; }
