@@ -57,11 +57,45 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 
-// Apply EF migrations and seed data
-using (var scope = app.Services.CreateScope())
+// Apply EF migrations and seed data with error handling
+try
 {
-    var context = scope.ServiceProvider.GetRequiredService<HospitalDbContext>();
-    Initialize(context);
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<HospitalDbContext>();
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+        try
+        {
+            // Run pending migrations (safe - idempotent)
+            logger.LogInformation("⏳ Running database migrations...");
+            context.Database.Migrate();
+            logger.LogInformation("✅ Migrations completed successfully");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "❌ Migration failed");
+            throw;
+        }
+
+        try
+        {
+            // Seed initial data if needed
+            logger.LogInformation("🌱 Seeding database...");
+            Initialize(context);
+            logger.LogInformation("✅ Database seeding completed");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "⚠️ Seeding encountered an issue (may be non-critical)");
+        }
+    }
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "❌ Critical: Database initialization failed. Application cannot start.");
+    throw;
 }
 
 // Hospital API Endpoints

@@ -65,22 +65,6 @@ jobs:
           echo "✅ Frontend assets copied to wwwroot"
           ls -la ${{ runner.temp }}/publish/wwwroot/
 
-      # Run database migrations on Azure PostgreSQL
-      - name: Run database migrations
-        run: |
-          echo "⏳ Installing dotnet-ef tool..."
-          dotnet tool install --global dotnet-ef
-
-          echo "🔄 Running database migrations..."
-          dotnet ef database update \
-            --project Hospital.Api \
-            --configuration Release \
-            --verbose
-
-          echo "✅ Migrations completed successfully"
-        env:
-          ConnectionStrings__DefaultConnection: ${{ secrets.AZURE_DB_CONNECTION_STRING }}
-
       # Deploy to Azure
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
