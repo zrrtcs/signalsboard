@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, Chip, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, Chip, CircularProgress, IconButton, Tooltip, Alert } from '@mui/material';
 import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon, QrCode2 as QRIcon } from '@mui/icons-material';
 import { useHospitalSignalR } from './hooks/useHospitalSignalR';
 import { useHospitalStore } from './store/hospitalStore';
@@ -53,6 +53,7 @@ function App() {
   const { toggleGlobalMute } = useAudioAlert();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usingMockData, setUsingMockData] = useState(false);
   const [globalMuted, setGlobalMuted] = useState(true);
   const [qrModalOpen, setQrModalOpen] = useState(false);
 
@@ -70,21 +71,25 @@ function App() {
         setLoading(true);
         // Try to fetch from API, fallback to mock data
         const data = await hospitalApi.getPatients().catch(() => {
-          console.warn('API unavailable, using mock data');
+          console.warn('API timeout/unavailable - using mock data');
+          setUsingMockData(true);
           return mockPatients;
         });
 
         // Use mock data if API returns empty array
         if (data.length === 0) {
-          console.warn('API returned no patients, using mock data');
+          console.warn('API returned no patients - using mock data');
+          setUsingMockData(true);
           setPatients(mockPatients);
         } else {
+          setUsingMockData(false);
           setPatients(data);
         }
         setError(null);
       } catch (err) {
         console.error('Failed to load patients:', err);
-        setError('Failed to load patient data');
+        setError('Failed to load patient data - showing mock data');
+        setUsingMockData(true);
         // Use mock data as fallback
         setPatients(mockPatients);
       } finally {
@@ -174,6 +179,13 @@ function App() {
             </Toolbar>
           </Box>
         </AppBar>
+
+        {/* Mock Data Warning Banner */}
+        {usingMockData && (
+          <Alert severity="warning" sx={{ borderRadius: 0, mb: 2 }}>
+            ⚠️ <strong>Demo Mode:</strong> Using demonstration data. Live patient data currently unavailable (API request timed out).
+          </Alert>
+        )}
 
         <Box sx={{ p: 3, maxWidth: 1400, mx: 'auto', width: '100%' }}>
           {loading ? (
