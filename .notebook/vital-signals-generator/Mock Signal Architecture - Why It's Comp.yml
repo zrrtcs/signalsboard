@@ -1,0 +1,8 @@
+Mock Signal Architecture - Why It's Complex
+
+  The sophisticated part:
+  - Stateful drift: Vitals trend over time (e.g., BP slowly rising)
+  - Correlated vitals: If HR goes up, BP should correlate
+  - Crisis injection: Realistic medical emergencies with proper progression
+  - Multiple patients: Each with different baseline patterns
+  - Background service coordination: Generate → Save to DB → Broadcast via SignalR

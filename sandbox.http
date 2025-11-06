@@ -1,0 +1,14 @@
+# POST http://localhost:8080/api/simulator/patient/p2/injection-mode?enabled=true
+
+
+POST http://localhost:8080/api/vitals/inject
+Content-Type: application/json
+Accept: */*
+
+{
+    "patientId": "p1",
+    "heartRate": 44,
+    "spO2": 44,
+    "bpSystolic": 150,
+    "bpDiastolic": 150
+}

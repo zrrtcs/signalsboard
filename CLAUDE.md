@@ -1,7 +1,3 @@
-Noted. Here’s a drop-in **README.md** you can paste into Claude Code to scaffold the repo.
-
----
-
 # hospital-display
 
 Production-ready demo: **Hospital Patient-Care Dashboard** with **realtime SignalR** updates and React UI. Optimized for a wall/TV display.
@@ -26,11 +22,13 @@ Production-ready demo: **Hospital Patient-Care Dashboard** with **realtime Signa
 ```
 Signalsboard/
 ├─ Hospital.Api/           # ASP.NET Core + SignalR + EF Core 9
-├─ Hospital.Contracts/     # EF Entities + Business Logic
+│  └─ Domain/             # Domain Entities + Business Logic
+├─ Hospital.Api.Contracts/ # DTOs and API Contracts
+│  └─ DTOs/
 ├─ Hospital.Clients/
-│  └─ hospital-web/       # React + Vite + TypeScript
-├─ Hospital.Api.Tests/    # xUnit Tests + Business Logic Validation
-├─ .notebook/             # Technical Documentation
+│  └─ hospital-web/       # React + Vite + TypeScript (planned)
+├─ Hospital.Api.Tests/    # xUnit Tests + Business Logic/Medical Safety Validation
+├─ .notebook/             # Technical Documentation (Fossil SCM)
 ├─ docker-compose.yml     # PostgreSQL + API orchestration
 └─ Signalsboard.sln       # Multi-project solution
 ```
@@ -58,7 +56,8 @@ Signalsboard/
 * **ASP.NET Core** - Minimal API with health checks
 * **Entity Framework Core 9** - PostgreSQL with hybrid seeding
 * **SignalR** - Real-time WebSocket communication
-* **xUnit** - Business logic testing with medical scenarios
+
+* **xUnit + Integration Testing** - Comprehensive medical safety testing with Testcontainers
 * **PostgreSQL 17** - Production database with time-series optimization
 
 ### Frontend (Planned)
@@ -264,16 +263,16 @@ This project follows **Git Flow** branching strategy for professional developmen
 
 ### Branch Structure
 - **`master`** - Production-ready code only
-- **`develop`** - Main development branch, integration point
-- **`feature/*`** - Feature branches from develop
+- **`dev`** - Main development branch, integration point
+- **`feature/*`** - Feature branches from dev
 - **`hotfix/*`** - Emergency fixes from master
-- **`release/*`** - Release preparation from develop
+- **`release/*`** - Release preparation from dev
 
 ### Development Process
 ```bash
 # 1. Start new feature
-git checkout develop
-git pull origin develop
+git checkout dev
+git pull origin dev
 git checkout -b feature/patient-dashboard
 
 # 2. Work on feature with conventional commits
@@ -284,20 +283,20 @@ git commit -m "docs: update API documentation for patient endpoints"
 
 # 3. Push feature and create PR
 git push -u origin feature/patient-dashboard
-# Create PR: feature/patient-dashboard → develop
+# Create PR: feature/patient-dashboard → dev
 
-# 4. After PR approval, merge to develop
-git checkout develop
-git pull origin develop
+# 4. After PR approval, merge to dev
+git checkout dev
+git pull origin dev
 git branch -d feature/patient-dashboard
 
 # 5. Release process
-git checkout -b release/v1.0.0 develop
+git checkout -b release/v1.0.0 dev
 # Final testing, version bumps, changelog
 git checkout master
 git merge release/v1.0.0
 git tag v1.0.0
-git checkout develop
+git checkout dev
 git merge release/v1.0.0
 ```
 
@@ -322,6 +321,11 @@ All branches must pass:
 
 **⚠️ IMPORTANT: Never commit directly to `master`. Always use feature branches and PRs.**
 
+**🔄 "git good" Command**: When user says "git good", follow proper Git Flow strategy:
+- Commit current changes with conventional commit messages
+- Use appropriate branching (feature/*, hotfix/*, release/*)
+- Be professionally concise with commit messages or workflow, you are not a marketer.
+
 ---
 
 ## Technical Documentation
@@ -330,8 +334,10 @@ For comprehensive technical details, see the `.notebook/` directory:
 
 * **[Technical Overview](.notebook/README.md)** - Complete architecture documentation, technology stack, and development workflow
 * **[Database Schema](.notebook/erd.md)** - Entity relationship design, medical domain modeling, and performance considerations
+* **[Testing Strategy](.notebook/testing-strategy.md)** - Medical safety testing, integration tests, and critical alert validation
 * **[Security & Secrets](.notebook/security-secrets.md)** - Production secret management, Azure Key Vault, Docker Secrets, and compliance practices
 * **[Deployment Strategies](.notebook/production-deployment.md)** - Zero-downtime deployments, Blue-Green patterns, EF migrations, and emergency procedures
+* **[Progress Log](.notebook/progress-log.md)** - Development session tracking and accomplishments
 
 The `.notebook/` contains enterprise-grade documentation covering:
 - Database design with medical alert thresholds
@@ -367,3 +373,29 @@ MIT (demo; mock data only).
 ---
 
 If you want, I can generate the **SignalR hub + Minimal API skeleton** and the **Vite config** next.
+
+## SignalR Setup
+
+The SignalR hub is configured in `Hospital.Api` to handle real-time updates for vital signs and alerts. The hub is exposed at `/hubs/vitals` and supports WebSocket and Long Polling transports.
+
+### Backend Configuration
+- **CORS**: Ensure the frontend origin is allowed in `Program.cs`.
+- **Health Check**: The Dockerfile includes a health check for the API.
+
+### Frontend Integration
+- Use the `useHospitalSignalR` hook to manage SignalR connections.
+- Handle events like `ReceiveVitalUpdate` and `ReceiveAlert` for real-time updates.
+
+## Database Migration
+
+The database migration process is automated in the Docker container. Ensure the following:
+- The `init-db.sql` script is included in the Docker image.
+- Migrations are applied during container startup using `dotnet ef database update`.
+
+## Docker Configuration
+
+The `Dockerfile` ensures the API runs at boot with the following:
+- **ENTRYPOINT**: `dotnet Hospital.Api.dll`
+- **Port**: Exposed on `8080`.
+- **Non-root User**: Runs as `appuser` for security.
+- **Health Check**: Verifies the API is running.

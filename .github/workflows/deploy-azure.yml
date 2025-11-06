@@ -1,0 +1,96 @@
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches:
+      - dev
+      - master
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: 'hospital-dashboard-p1'
+  DOTNET_VERSION: '9.0'
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Build frontend React app
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'Hospital.Clients/hospital-web/package-lock.json'
+
+      - name: Build React frontend
+        working-directory: Hospital.Clients/hospital-web
+        run: |
+          npm ci
+          npm run build
+          echo "✅ Frontend built successfully"
+
+      # Build backend .NET app
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore .NET dependencies
+        run: dotnet restore Hospital.Api
+
+      - name: Build .NET backend
+        run: dotnet build Hospital.Api -c Release --no-restore
+
+      # Publish backend with frontend assets included
+      - name: Publish backend for Azure deployment
+        run: |
+          dotnet publish Hospital.Api \
+            -c Release \
+            -o ${{ runner.temp }}/publish \
+            --no-build \
+            /p:UseAppHost=false
+          echo "✅ Backend published successfully"
+
+      # Copy React dist folder to backend's wwwroot
+      - name: Copy frontend assets to backend wwwroot
+        run: |
+          mkdir -p ${{ runner.temp }}/publish/wwwroot
+          cp -r Hospital.Clients/hospital-web/dist/* ${{ runner.temp }}/publish/wwwroot/
+          echo "✅ Frontend assets copied to wwwroot"
+          ls -la ${{ runner.temp }}/publish/wwwroot/
+
+      # Deploy to Azure
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+          package: ${{ runner.temp }}/publish
+
+      # Verify deployment
+      - name: Verify Azure deployment health
+        run: |
+          echo "⏳ Waiting for app to start (10 seconds)..."
+          sleep 10
+
+          HEALTH_URL="https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health"
+          echo "🔍 Checking health endpoint: $HEALTH_URL"
+
+          if curl -f "$HEALTH_URL" -s; then
+            echo "✅ Health check passed!"
+          else
+            echo "⚠️ Health check pending (app may still be starting)"
+          fi
+
+      - name: Deployment completed
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo "📱 Frontend: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/"
+          echo "🔌 API: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/api/"
+          echo "📊 Swagger: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/swagger/"

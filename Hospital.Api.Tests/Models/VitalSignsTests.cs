@@ -1,7 +1,7 @@
-using Hospital.Contracts.Models;
+using Signalsboard.Hospital.Api.Domain;
 using Xunit;
 
-namespace Hospital.Api.Tests.Models;
+namespace Signalsboard.Hospital.Api.Tests.Models;
 
 public class VitalSignsTests
 {

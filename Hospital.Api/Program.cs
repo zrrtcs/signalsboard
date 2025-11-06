@@ -1,5 +1,10 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Hospital.Api.Data;
+using Signalsboard.Hospital.Api.Data;
+using Signalsboard.Hospital.Api.Domain;
+using Signalsboard.Hospital.Api.Hubs;
+using Signalsboard.Hospital.Api.Services;
+using static Signalsboard.Hospital.Api.Data.SeedData;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +18,27 @@ builder.Services.AddDbContext<HospitalDbContext>(options =>
 
 builder.Services.AddHealthChecks()
     .AddNpgSql(connectionString);
+
+// Add CORS for React development server
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173") // Vite default port
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // Required for SignalR
+    });
+});
+
+// Add SignalR for real-time communication
+builder.Services.AddSignalR();
+
+// Add application services
+builder.Services.AddScoped<AlertService>();
+// Register VitalSignsSimulatorService as both Singleton (for DI) and HostedService (for background execution)
+builder.Services.AddSingleton<VitalSignsSimulatorService>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<VitalSignsSimulatorService>());
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -28,55 +54,310 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 
-// Apply EF migrations and seed data
-using (var scope = app.Services.CreateScope())
+// Serve static files (React frontend from wwwroot)
+app.UseStaticFiles();
+
+// Fallback to index.html for SPA client-side routing
+app.MapFallbackToFile("index.html");
+
+// Apply EF migrations and seed data with error handling
+try
 {
-    var context = scope.ServiceProvider.GetRequiredService<HospitalDbContext>();
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<HospitalDbContext>();
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
-    // Apply pending migrations
-    context.Database.Migrate();
+        try
+        {
+            // Run pending migrations (safe - idempotent)
+            logger.LogInformation("⏳ Running database migrations...");
+            context.Database.Migrate();
+            logger.LogInformation("✅ Migrations completed successfully");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "❌ Migration failed");
+            throw;
+        }
 
-    // Development-only sample data seeding
-    // TODO: Implement SeedDevelopmentData method for:
-    // - Sample wards (ICU, Emergency, General Medicine, Pediatrics)
-    // - Mock patients with realistic names and MRNs
-    // - Generated vital signs with varying severities for dashboard testing
-    // - Alert scenarios (critical HR, low SpO2, high BP) for UI validation
-    // - Staff assignments across different shifts and roles
-    // - Bed occupancy patterns for realistic ward visualization
-    // if (app.Environment.IsDevelopment())
-    // {
-    //     await SeedDevelopmentData(context);
-    // }
+        try
+        {
+            // Seed initial data if needed
+            logger.LogInformation("🌱 Seeding database...");
+            Initialize(context);
+            logger.LogInformation("✅ Database seeding completed");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "⚠️ Seeding encountered an issue (may be non-critical)");
+        }
+    }
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "❌ Critical: Database initialization failed. Application cannot start.");
+    throw;
 }
 
-var summaries = new[]
+// Hospital API Endpoints
+app.MapGet("/api/wards", async (HospitalDbContext db) =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
+    var wards = await db.Wards
+        .OrderBy(w => w.Name)
+        .ToListAsync();
+    return Results.Ok(wards);
 })
-.WithName("GetW  1. Installing EF CLI tools globally\n  2. Adding PostgreSQL packages to Hospital.Api\n  3. Creating the EF entities in Hospital.ContractseatherForecast")
+.WithName("GetWards")
+.WithOpenApi();
+
+app.MapGet("/api/patients", async (HospitalDbContext db, string? wardId = null) =>
+{
+    var query = db.Patients.AsQueryable();
+
+    if (!string.IsNullOrEmpty(wardId))
+    {
+        query = query.Where(p => p.Bed != null && p.Bed.WardId == wardId);
+    }
+
+    // Fetch patients with their most recent bed and relationships
+    var allPatients = await query
+        .Include(p => p.Bed)
+        .ThenInclude(b => b!.Ward)
+        .Include(p => p.VitalSigns)  // Load all vitals into memory first
+        .OrderBy(p => p.Name)
+        .ToListAsync();
+
+    // Project to DTO with limited vitals (20 most recent) client-side
+    var patientsDto = allPatients.Select(p => new
+    {
+        p.Id,
+        p.Mrn,
+        p.Name,
+        p.Status,
+        p.AdmittedAt,
+        p.AttendingPhysician,
+        p.PrimaryDiagnosis,
+        p.InjectionModeEnabled,  // ← Include injection mode state from database
+        Bed = p.Bed != null ? new
+        {
+            p.Bed.Id,
+            p.Bed.Number,
+            p.Bed.WardId,
+            p.Bed.Status,
+            p.Bed.BedType,
+            Ward = p.Bed.Ward != null ? new
+            {
+                p.Bed.Ward.Id,
+                p.Bed.Ward.Name,
+                p.Bed.Ward.Capacity,
+                p.Bed.Ward.Location
+            } : (object?)null
+        } : (object?)null,
+        // Keep last 20 vitals, ordered chronologically for sparklines
+        VitalSigns = p.VitalSigns
+            .OrderByDescending(v => v.RecordedAt)
+            .Take(20)
+            .OrderBy(v => v.RecordedAt)  // Reverse to chronological for frontend
+            .Select(v => new
+            {
+                v.Id,
+                v.PatientId,
+                v.HeartRate,
+                v.SpO2,
+                v.BpSystolic,
+                v.BpDiastolic,
+                v.Temperature,
+                v.RecordedAt
+            })
+            .ToList()
+    }).ToList();
+
+    return Results.Ok(patientsDto);
+})
+.WithName("GetPatients")
+.WithOpenApi();
+
+app.MapGet("/api/patients/{id}/trend", async (HospitalDbContext db, string id, int minutes = 240) =>
+{
+    var trends = await db.VitalSigns
+        .Where(v => v.PatientId == id &&
+                   v.RecordedAt >= DateTime.UtcNow.AddMinutes(-minutes))
+        .OrderBy(v => v.RecordedAt)
+        .ToListAsync();
+
+    return Results.Ok(trends);
+})
+.WithName("GetPatientTrend")
+.WithOpenApi();
+
+// Manual vital signs injection endpoint for testing
+app.MapPost("/api/vitals/inject", async (
+    HospitalDbContext db,
+    AlertService alertService,
+    IHubContext<VitalsHub, IVitalsClient> hubContext,
+    VitalSignsSimulatorService simulatorService,
+    VitalSignsInjectionRequest request) =>
+{
+    var patient = await db.Patients
+        .Include(p => p.Bed)
+        .ThenInclude(b => b!.Ward)
+        .FirstOrDefaultAsync(p => p.Id == request.PatientId);
+
+    if (patient == null)
+        return Results.NotFound($"Patient {request.PatientId} not found");
+
+    var vitals = new VitalSigns
+    {
+        Id = Guid.NewGuid().ToString(),
+        PatientId = request.PatientId,
+        HeartRate = request.HeartRate,
+        SpO2 = request.SpO2,
+        BpSystolic = request.BpSystolic,
+        BpDiastolic = request.BpDiastolic,
+        RecordedAt = DateTime.UtcNow
+    };
+
+    if (!vitals.IsValid())
+        return Results.BadRequest("Invalid vital signs values");
+
+    // Record injected vitals so simulator can use as baseline if injection mode is enabled
+    simulatorService.RecordInjectedVitals(request.PatientId, vitals);
+
+    db.VitalSigns.Add(vitals);
+
+    // Generate and save alerts
+    var alerts = alertService.GenerateAlertsForVitals(vitals);
+    if (alerts.Any())
+    {
+        db.Alerts.AddRange(alerts);
+        alertService.UpdatePatientStatus(patient, vitals);
+
+        foreach (var alert in alerts)
+        {
+            await hubContext.Clients.All.ReceiveAlert(new AlertNotification(
+                alert.Id,
+                patient.Id,
+                patient.Name,
+                alert.AlertType,
+                alert.Severity,
+                alert.Message,
+                alert.TriggeredAt
+            ));
+        }
+    }
+
+    await db.SaveChangesAsync();
+
+    // Broadcast vital update via SignalR
+    var update = new VitalSignsUpdate(
+        patient.Id,
+        patient.Name,
+        patient.Bed?.Number,
+        patient.Bed?.Ward?.Name,
+        vitals.HeartRate,
+        vitals.SpO2,
+        vitals.BpSystolic,
+        vitals.BpDiastolic,
+        vitals.CalculateAlertSeverity().ToString(),
+        vitals.RecordedAt
+    );
+
+    await hubContext.Clients.All.ReceiveVitalUpdate(update);
+
+    return Results.Ok(update);
+})
+.WithName("InjectVitalSigns")
+.WithOpenApi();
+
+// Toggle injection mode for a patient
+// When enabled, simulator uses injected vitals as baseline with drift pattern
+app.MapPost("/api/simulator/patient/{id}/injection-mode", async (
+    string id,
+    bool enabled,
+    HospitalDbContext db,
+    VitalSignsSimulatorService simulatorService,
+    IHubContext<VitalsHub, IVitalsClient> hubContext) =>
+{
+    // Fetch patient from database
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Id == id);
+    if (patient == null)
+        return Results.NotFound($"Patient {id} not found");
+
+    // Update database (source of truth)
+    patient.InjectionModeEnabled = enabled;
+    await db.SaveChangesAsync();
+
+    // Update in-memory simulator state
+    simulatorService.SetInjectionMode(id, enabled);
+
+    // Broadcast change to all connected clients (same pattern as vital updates)
+    var change = new InjectionModeChange(
+        patient.Id,
+        patient.Name,
+        enabled,
+        DateTime.UtcNow
+    );
+    await hubContext.Clients.All.ReceiveInjectionModeChange(change);
+
+    var modeStatus = enabled ? "ENABLED" : "DISABLED";
+    return Results.Ok(new { patientId = id, injectionMode = modeStatus });
+})
+.WithName("ToggleInjectionMode")
+.WithOpenApi();
+
+// Nurse Attending endpoint - source of truth is database
+app.MapPost("/api/patients/{id}/nurse-attending", async (
+    string id,
+    bool attending,
+    HospitalDbContext db,
+    IHubContext<VitalsHub, IVitalsClient> hubContext) =>
+{
+    // Fetch patient from database
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Id == id);
+    if (patient == null)
+        return Results.NotFound($"Patient {id} not found");
+
+    // Update database (source of truth)
+    patient.NurseAttending = attending;
+    await db.SaveChangesAsync();
+
+    // Broadcast change to all connected clients
+    var change = new NurseAttendingChange(
+        patient.Id,
+        patient.Name,
+        attending,
+        DateTime.UtcNow
+    );
+    await hubContext.Clients.All.ReceiveNurseAttendingChange(change);
+
+    var status = attending ? "ATTENDING" : "IDLE";
+    return Results.Ok(new { patientId = id, nurseAttending = status });
+})
+.WithName("ToggleNurseAttending")
 .WithOpenApi();
 
 app.MapHealthChecks("/health");
 
+// Map SignalR Hub
+app.MapHub<VitalsHub>("/hubs/vitals");
+
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+// Make Program accessible for integration testing
+public partial class Program { }
+
+/// <summary>
+/// Request DTO for manual vital signs injection via testing tool
+/// </summary>
+public record VitalSignsInjectionRequest(
+    string PatientId,
+    int? HeartRate,
+    int? SpO2,
+    int? BpSystolic,
+    int? BpDiastolic
+);

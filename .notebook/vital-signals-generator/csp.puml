@@ -1,0 +1,46 @@
+@startuml
+title Signalsboard.Hospital.Simulation — CSP (Tasks + Channels, Swimlanes)
+
+|Host / Wiring|
+start
+:Load VitalsOptions & services;
+:Query patientIds (cap MaxBeds);
+:Create per-bed bounded Channel<VitalSample>(cap=1);
+:Start BedTask[i];
+
+|BedTask[i]|
+:Warmup -> Write samples to its channel;
+:Start PeriodicTimer(Interval);
+repeat
+:On tick -> gen.Next(patientId, now);
+:WriteAsync(sample) to channel;
+if (channel full?) then (apply policy: block / drop-oldest / coalesce)
+endif
+repeat while (app running)
+
+|Fan-in / Merge|
+:Spawn N readers (one per bed channel);
+:ReadAllAsync -> write into merged channel;
+
+|Batcher|
+:Window = Interval;
+repeat
+:Collect up to patientCount samples or until window ends;
+if (collected > 0) then (yes)
+  :WriteAsync(batch) to batch channel;
+endif
+repeat while (app running)
+
+|Broadcaster|
+:Read batch; IVitalBroadcaster.PublishAsync(batch);
+
+|SignalR Broadcaster (Service)|
+:Buffer.Add(each sample);
+:Map to DTO; hub.Clients.All.PushVitals(dto);
+
+|Observability|
+:Report: channel depth, drops, last-push < 10s;
+
+|Host / Wiring|
+stop
+@enduml
