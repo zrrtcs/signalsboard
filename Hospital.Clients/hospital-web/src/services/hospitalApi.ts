@@ -1,7 +1,7 @@
 import type { Patient, VitalSigns, Ward, VitalSignsInjectionRequest } from '../types/hospital';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-const FETCH_TIMEOUT = 15000; // 15 second timeout (cold start can take 10-30s, so generous)
+const FETCH_TIMEOUT = 30000; // 30 second timeout (Azure cold start can take 10-30s, observed ~19s for actual response)
 
 /**
  * Hospital API Service
