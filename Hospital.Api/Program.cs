@@ -124,16 +124,52 @@ app.MapGet("/api/patients", async (HospitalDbContext db, string? wardId = null) 
         query = query.Where(p => p.Bed != null && p.Bed.WardId == wardId);
     }
 
-    // Fetch patients with their most recent bed and relationships
-    var allPatients = await query
+    // ✅ OPTIMIZATION: Load patients WITHOUT vitals first (fast)
+    var patients = await query
         .Include(p => p.Bed)
         .ThenInclude(b => b!.Ward)
-        .Include(p => p.VitalSigns)  // Load all vitals into memory first
+        .AsNoTracking()  // Read-only optimization
         .OrderBy(p => p.Name)
         .ToListAsync();
 
-    // Project to DTO with limited vitals (20 most recent) client-side
-    var patientsDto = allPatients.Select(p => new
+    // ✅ OPTIMIZATION: Load ONLY last 20 vitals per patient at DB level using window function
+    var patientIds = patients.Select(p => p.Id).ToList();
+
+    // Use SQL window function to get exactly 20 vitals per patient at database level
+    // ROW_NUMBER() OVER (PARTITION BY PatientId ORDER BY RecordedAt DESC) as rn
+    // WHERE rn <= 20
+    var allRecentVitals = await db.VitalSigns
+        .FromSqlInterpolated($@"
+            WITH RankedVitals AS (
+                SELECT
+                    ""Id"", ""PatientId"", ""HeartRate"", ""SpO2"",
+                    ""BpSystolic"", ""BpDiastolic"", ""Temperature"", ""RecordedAt"",
+                    ROW_NUMBER() OVER (PARTITION BY ""PatientId"" ORDER BY ""RecordedAt"" DESC) as rn
+                FROM public.""VitalSigns""
+                WHERE ""PatientId"" = ANY({patientIds.ToArray()})
+            )
+            SELECT
+                ""Id"", ""PatientId"", ""HeartRate"", ""SpO2"",
+                ""BpSystolic"", ""BpDiastolic"", ""Temperature"", ""RecordedAt""
+            FROM RankedVitals
+            WHERE rn <= 20
+            ORDER BY ""PatientId"", ""RecordedAt"" DESC
+        ")
+        .AsNoTracking()  // Read-only optimization
+        .ToListAsync();
+
+    // Group vitals by patient (data is already filtered to 20 per patient from database)
+    var vitalsByPatient = allRecentVitals
+        .GroupBy(v => v.PatientId)
+        .ToDictionary(
+            g => g.Key,
+            g => g
+                .OrderBy(v => v.RecordedAt)  // Chronological for sparklines
+                .ToList()
+        );
+
+    // Project to DTO
+    var patientsDto = patients.Select(p => new
     {
         p.Id,
         p.Mrn,
@@ -142,7 +178,7 @@ app.MapGet("/api/patients", async (HospitalDbContext db, string? wardId = null) 
         p.AdmittedAt,
         p.AttendingPhysician,
         p.PrimaryDiagnosis,
-        p.InjectionModeEnabled,  // ← Include injection mode state from database
+        p.InjectionModeEnabled,
         Bed = p.Bed != null ? new
         {
             p.Bed.Id,
@@ -158,12 +194,8 @@ app.MapGet("/api/patients", async (HospitalDbContext db, string? wardId = null) 
                 p.Bed.Ward.Location
             } : (object?)null
         } : (object?)null,
-        // Keep last 20 vitals, ordered chronologically for sparklines
-        VitalSigns = p.VitalSigns
-            .OrderByDescending(v => v.RecordedAt)
-            .Take(20)
-            .OrderBy(v => v.RecordedAt)  // Reverse to chronological for frontend
-            .Select(v => new
+        VitalSigns = vitalsByPatient.TryGetValue(p.Id, out var vitals)
+            ? vitals.Select(v => new
             {
                 v.Id,
                 v.PatientId,
@@ -173,8 +205,8 @@ app.MapGet("/api/patients", async (HospitalDbContext db, string? wardId = null) 
                 v.BpDiastolic,
                 v.Temperature,
                 v.RecordedAt
-            })
-            .ToList()
+            }).Cast<object>().ToList()
+            : new List<object>()
     }).ToList();
 
     return Results.Ok(patientsDto);

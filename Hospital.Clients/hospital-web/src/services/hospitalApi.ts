@@ -1,11 +1,23 @@
 import type { Patient, VitalSigns, Ward, VitalSignsInjectionRequest } from '../types/hospital';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const FETCH_TIMEOUT = 30000; // 30 second timeout (Azure cold start can take 10-30s, observed ~19s for actual response)
 
 /**
  * Hospital API Service
  * Handles all REST API calls to the backend
  */
+
+/**
+ * Wrapper for fetch with timeout to prevent hanging on slow API
+ */
+function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timeoutId));
+}
 
 export const hospitalApi = {
   /**
@@ -16,7 +28,7 @@ export const hospitalApi = {
       ? `${API_BASE_URL}/patients?wardId=${wardId}`
       : `${API_BASE_URL}/patients`;
 
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch patients: ${response.statusText}`);
     }
@@ -28,7 +40,7 @@ export const hospitalApi = {
    * Fetch all wards
    */
   async getWards(): Promise<Ward[]> {
-    const response = await fetch(`${API_BASE_URL}/wards`);
+    const response = await fetchWithTimeout(`${API_BASE_URL}/wards`);
     if (!response.ok) {
       throw new Error(`Failed to fetch wards: ${response.statusText}`);
     }
@@ -40,7 +52,7 @@ export const hospitalApi = {
    * Fetch vital signs trend for a specific patient
    */
   async getPatientTrend(patientId: string, minutes: number = 240): Promise<VitalSigns[]> {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${API_BASE_URL}/patients/${patientId}/trend?minutes=${minutes}`
     );
 
@@ -55,7 +67,7 @@ export const hospitalApi = {
    * Manually inject vital signs (for testing tool)
    */
   async injectVitals(request: VitalSignsInjectionRequest): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/vitals/inject`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/vitals/inject`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
