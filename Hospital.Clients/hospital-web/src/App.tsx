@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, Chip, CircularProgress, IconButton, Tooltip, Alert } from '@mui/material';
-import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon, QrCode2 as QRIcon } from '@mui/icons-material';
+import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon, QrCode2 as QRIcon, GitHub as GitHubIcon } from '@mui/icons-material';
 import { useHospitalSignalR } from './hooks/useHospitalSignalR';
 import { useHospitalStore } from './store/hospitalStore';
 import { useAudioAlert } from './hooks/useAudioAlert';
@@ -147,6 +147,27 @@ function App() {
                   }}
                 >
                   <QRIcon />
+                </IconButton>
+              </Tooltip>
+
+              {/* GitHub Repository Link */}
+              <Tooltip title="View source code on GitHub">
+                <IconButton
+                  component="a"
+                  href="https://github.com/zrrtcs/signalsboard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    color: '#ffffff',
+                    mr: 1,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      transform: 'scale(1.1)',
+                    },
+                  }}
+                >
+                  <GitHubIcon />
                 </IconButton>
               </Tooltip>
 
