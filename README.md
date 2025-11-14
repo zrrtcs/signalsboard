@@ -1,5 +1,7 @@
 # Hospital Dashboard - Real-time Patient Monitoring System
 
+Live Demo Preview: https://hospital-dashboard-p1-cddtbnexcrdvckcu.malaysiawest-01.azurewebsites.net/
+
 A **full-stack hospital patient monitoring system** demonstrating production-style architecture with real-time SignalR updates, comprehensive testing, and medical domain modeling.
 
 [![.NET](https://img.shields.io/badge/.NET-8.0-purple)](https://dotnet.microsoft.com/)
