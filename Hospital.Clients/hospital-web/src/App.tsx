@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, Chip, CircularProgress, IconButton, Tooltip, Alert } from '@mui/material';
-import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon, QrCode2 as QRIcon, GitHub as GitHubIcon } from '@mui/icons-material';
+import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon, QrCode2 as QRIcon, GitHub as GitHubIcon, NotificationsOff as NotificationsOffIcon, Notifications as NotificationsIcon } from '@mui/icons-material';
 import { useHospitalSignalR } from './hooks/useHospitalSignalR';
 import { useHospitalStore } from './store/hospitalStore';
 import { useAudioAlert } from './hooks/useAudioAlert';
@@ -55,6 +55,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [usingMockData, setUsingMockData] = useState(false);
   const [globalMuted, setGlobalMuted] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
 
   // Initialize global mute state from localStorage
@@ -63,6 +64,18 @@ function App() {
     const stored = localStorage.getItem('hospital:global-mute');
     setGlobalMuted(stored ? JSON.parse(stored) : true);
   }, []);
+
+  // Initialize notifications state from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('hospital:notifications-enabled');
+    setNotificationsEnabled(stored ? JSON.parse(stored) : false);
+  }, []);
+
+  const toggleNotifications = () => {
+    const newValue = !notificationsEnabled;
+    setNotificationsEnabled(newValue);
+    localStorage.setItem('hospital:notifications-enabled', JSON.stringify(newValue));
+  };
 
   // Load initial patient data
   useEffect(() => {
@@ -179,7 +192,7 @@ function App() {
                 }}
                 sx={{
                   color: globalMuted ? '#f44336' : 'inherit',
-                  mr: 2,
+                  mr: 1,
                   transition: 'all 0.3s ease',
                   '&:hover': {
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -189,6 +202,23 @@ function App() {
                 title={globalMuted ? '🔇 Global Mute: ON (all alerts silenced)' : '🔊 Global Mute: OFF (alerts enabled)'}
               >
                 {globalMuted ? <MuteIcon /> : <UnmuteIcon />}
+              </IconButton>
+
+              {/* Notifications Toggle Button */}
+              <IconButton
+                onClick={toggleNotifications}
+                sx={{
+                  color: notificationsEnabled ? '#4caf50' : '#f44336',
+                  mr: 2,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    transform: 'scale(1.1)',
+                  },
+                }}
+                title={notificationsEnabled ? '🔔 Notifications: ON (browser alerts enabled)' : '🔕 Notifications: OFF (no browser alerts)'}
+              >
+                {notificationsEnabled ? <NotificationsIcon /> : <NotificationsOffIcon />}
               </IconButton>
 
               <Chip
