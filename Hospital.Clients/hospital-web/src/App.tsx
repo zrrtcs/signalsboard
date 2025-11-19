@@ -73,6 +73,7 @@ function App() {
 
   const toggleNotifications = () => {
     const newValue = !notificationsEnabled;
+    console.log('🔔 Notifications toggled:', { from: notificationsEnabled, to: newValue });
     setNotificationsEnabled(newValue);
     localStorage.setItem('hospital:notifications-enabled', JSON.stringify(newValue));
   };
