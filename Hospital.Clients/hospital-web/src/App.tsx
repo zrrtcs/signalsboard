@@ -48,15 +48,17 @@ const theme = createTheme({
 });
 
 function App() {
-  const { connectionStatus } = useHospitalSignalR();
-  const { patients, setPatients } = useHospitalStore();
-  const { toggleGlobalMute } = useAudioAlert();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [usingMockData, setUsingMockData] = useState(false);
   const [globalMuted, setGlobalMuted] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
+
+  // Pass notificationsEnabled to SignalR hook
+  const { connectionStatus } = useHospitalSignalR(notificationsEnabled);
+  const { patients, setPatients } = useHospitalStore();
+  const { toggleGlobalMute } = useAudioAlert();
 
   // Initialize global mute state from localStorage
   // Default: true (MUTED) - ensures audio doesn't surprise users on first load
