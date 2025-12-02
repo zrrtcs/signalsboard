@@ -98,6 +98,13 @@ export interface NurseAttendingChange {
   changedAt: string;
 }
 
+export interface InjectionModeChange {
+  patientId: string;
+  patientName: string;
+  injectionModeEnabled: boolean;
+  changedAt: string;
+}
+
 /**
  * API Request/Response types
  */

@@ -83,8 +83,8 @@ export function VitalInjectorPanel() {
     }));
   };
 
-  const handlePatientChange = (event: any) => {
-    setSelectedPatientId(event.target.value);
+  const handlePatientChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+    setSelectedPatientId(event.target.value as string);
   };
 
   const handleToggleInjectionMode = async (patientId: string, enabled: boolean) => {
@@ -384,7 +384,7 @@ export function VitalInjectorPanel() {
                   <InputLabel>Select Vital</InputLabel>
                   <Select
                     value={criticalMode}
-                    onChange={(e) => setCriticalMode(e.target.value as any)}
+                    onChange={(e) => setCriticalMode(e.target.value as typeof criticalMode)}
                     label="Select Vital"
                     disabled={loading}
                   >

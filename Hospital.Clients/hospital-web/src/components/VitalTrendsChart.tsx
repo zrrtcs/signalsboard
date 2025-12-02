@@ -144,7 +144,7 @@ export function VitalTrendsChart({
                 label={{ value: 'BP (mmHg)', angle: 90, position: 'insideRight' }}
               />
               <Tooltip
-                formatter={(value: any) => (value ? value.toFixed(1) : '--')}
+                formatter={(value) => (typeof value === 'number' ? value.toFixed(1) : '--')}
                 labelFormatter={(label) => `Time: ${label}`}
               />
               <Legend />

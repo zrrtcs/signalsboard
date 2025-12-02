@@ -50,7 +50,8 @@ export function useAudioAlert() {
   useEffect(() => {
     if (!sirenBlobRef.current) {
       const generateSiren = () => {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const audioContext = new AudioContextClass();
         const duration = 2; // 2-second siren pattern
         const sampleRate = audioContext.sampleRate;
         const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);

@@ -7,6 +7,7 @@ import { useAudioAlert } from './hooks/useAudioAlert';
 import { PatientGrid } from './components/PatientGrid';
 import { VitalInjectorPanel } from './components/VitalInjectorPanel';
 import { DashboardQRModal } from './components/DashboardQRModal';
+import { DemoScenarioSelector } from './components/DemoScenarioSelector';
 import { hospitalApi, mockPatients } from './services/hospitalApi';
 
 // Medical dashboard theme - optimized for TV displays
@@ -147,6 +148,9 @@ function App() {
               <Typography variant="h5" component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
                 Hospital Vital Signs Dashboard
               </Typography>
+
+              {/* Demo Scenario Selector */}
+              <DemoScenarioSelector />
 
               {/* Dashboard QR Share Button */}
               <Tooltip title="Share dashboard QR code">
