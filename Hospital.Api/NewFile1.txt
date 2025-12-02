@@ -1,3 +1,0 @@
-  1. Installing EF CLI tools globally
-  2. Adding PostgreSQL packages to Hospital.Api
-  3. Creating the EF entities in Hospital.Contracts
