@@ -83,8 +83,8 @@ export function VitalInjectorPanel() {
     }));
   };
 
-  const handlePatientChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-    setSelectedPatientId(event.target.value as string);
+  const handlePatientChange = (event: { target: { value: string } }) => {
+    setSelectedPatientId(event.target.value);
   };
 
   const handleToggleInjectionMode = async (patientId: string, enabled: boolean) => {
