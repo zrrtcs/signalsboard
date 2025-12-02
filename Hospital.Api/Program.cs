@@ -132,30 +132,25 @@ app.MapGet("/api/patients", async (HospitalDbContext db, string? wardId = null) 
         .OrderBy(p => p.Name)
         .ToListAsync();
 
-    // ✅ OPTIMIZATION: Load ONLY last 20 vitals per patient at DB level using window function
+    // ✅ OPTIMIZATION: LATERAL JOIN - seeks index per patient instead of full table scan
     var patientIds = patients.Select(p => p.Id).ToList();
 
-    // Use SQL window function to get exactly 20 vitals per patient at database level
-    // ROW_NUMBER() OVER (PARTITION BY PatientId ORDER BY RecordedAt DESC) as rn
-    // WHERE rn <= 20
+    // LATERAL JOIN retrieves last 20 vitals per patient using index seek
+    // Much faster than CTE+ROW_NUMBER() which scans all matching rows first
     var allRecentVitals = await db.VitalSigns
         .FromSqlInterpolated($@"
-            WITH RankedVitals AS (
-                SELECT
-                    ""Id"", ""PatientId"", ""HeartRate"", ""SpO2"",
-                    ""BpSystolic"", ""BpDiastolic"", ""Temperature"", ""RecordedAt"",
-                    ROW_NUMBER() OVER (PARTITION BY ""PatientId"" ORDER BY ""RecordedAt"" DESC) as rn
+            SELECT v.*
+            FROM unnest({patientIds.ToArray()}) AS pid
+            CROSS JOIN LATERAL (
+                SELECT ""Id"", ""PatientId"", ""HeartRate"", ""SpO2"",
+                       ""BpSystolic"", ""BpDiastolic"", ""Temperature"", ""RecordedAt""
                 FROM public.""VitalSigns""
-                WHERE ""PatientId"" = ANY({patientIds.ToArray()})
-            )
-            SELECT
-                ""Id"", ""PatientId"", ""HeartRate"", ""SpO2"",
-                ""BpSystolic"", ""BpDiastolic"", ""Temperature"", ""RecordedAt""
-            FROM RankedVitals
-            WHERE rn <= 20
-            ORDER BY ""PatientId"", ""RecordedAt"" DESC
+                WHERE ""PatientId"" = pid
+                ORDER BY ""RecordedAt"" DESC
+                LIMIT 20
+            ) v
         ")
-        .AsNoTracking()  // Read-only optimization
+        .AsNoTracking()
         .ToListAsync();
 
     // Group vitals by patient (data is already filtered to 20 per patient from database)
