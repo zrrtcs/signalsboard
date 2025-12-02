@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { useHospitalStore } from '../store/hospitalStore';
-import type { VitalSignsUpdate, AlertNotification, NurseAttendingChange } from '../types/hospital';
+import type { VitalSignsUpdate, AlertNotification, NurseAttendingChange, InjectionModeChange } from '../types/hospital';
 
 const HUB_URL = import.meta.env.VITE_HUB_URL || 'http://localhost:5001/hubs/vitals';
 
@@ -9,7 +9,7 @@ const HUB_URL = import.meta.env.VITE_HUB_URL || 'http://localhost:5001/hubs/vita
  * Hospital-specific SignalR hook for real-time vital signs and alerts
  * Connects to VitalsHub and manages connection lifecycle
  */
-export function useHospitalSignalR() {
+export function useHospitalSignalR(notificationsEnabled: boolean = false) {
   const connectionRef = useRef<signalR.HubConnection | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
@@ -76,8 +76,8 @@ export function useHospitalSignalR() {
       console.log('🚨 Alert:', alert);
       addAlert(alert);
 
-      // Browser notification for critical alerts
-      if (alert.severity === 'Critical' && Notification.permission === 'granted') {
+      // Browser notification for critical alerts (only if user enabled notifications)
+      if (notificationsEnabled && alert.severity === 'Critical' && Notification.permission === 'granted') {
         new Notification(`Critical: ${alert.patientName}`, {
           body: alert.message,
           tag: alert.alertId,
@@ -85,7 +85,7 @@ export function useHospitalSignalR() {
       }
     });
 
-    connection.on('ReceiveInjectionModeChange', (change: any) => {
+    connection.on('ReceiveInjectionModeChange', (change: InjectionModeChange) => {
       console.log('💉 Injection mode change:', change);
       // Update Zustand store with new injection mode state
       useHospitalStore.getState().toggleInjectionMode(change.patientId, change.injectionModeEnabled);
@@ -127,7 +127,7 @@ export function useHospitalSignalR() {
         connection.stop();
       }
     };
-  }, []);
+  }, [notificationsEnabled]);
 
   return {
     connectionStatus,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import {
   Drawer,
   Typography,
@@ -18,14 +18,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-
-interface TrendPoint {
-  recordedAt: string;
-  heartRate?: number;
-  spO2?: number;
-  bpSystolic?: number;
-  bpDiastolic?: number;
-}
+import { usePatientTrend } from '../hooks/useHospitalQueries';
 
 interface VitalTrendsChartProps {
   patientId: string;
@@ -46,47 +39,19 @@ export function VitalTrendsChart({
   open,
   onClose,
 }: VitalTrendsChartProps) {
-  const [data, setData] = useState<TrendPoint[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { data: rawData, isLoading, error } = usePatientTrend(patientId, 240, open);
 
-  useEffect(() => {
-    if (!open) return;
-
-    const fetchTrendData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-        const response = await fetch(`${apiUrl}/patients/${patientId}/trend?minutes=240`);
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch trend data: ${response.statusText}`);
-        }
-
-        const trendData: TrendPoint[] = await response.json();
-
-        // Transform timestamps for better readability
-        const formattedData = trendData.map(point => ({
-          ...point,
-          time: new Date(point.recordedAt).toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-        }));
-
-        setData(formattedData);
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-        setError(errorMsg);
-        console.error('Error fetching trend data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTrendData();
-  }, [patientId, open]);
+  // Transform timestamps for chart display
+  const chartData = useMemo(() => {
+    if (!rawData) return [];
+    return rawData.map(point => ({
+      ...point,
+      time: new Date(point.recordedAt).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    }));
+  }, [rawData]);
 
   return (
     <Drawer
@@ -110,7 +75,7 @@ export function VitalTrendsChart({
       </Box>
 
       <Box sx={{ p: 2, minHeight: 400 }}>
-        {loading && (
+        {isLoading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
             <CircularProgress />
           </Box>
@@ -118,24 +83,24 @@ export function VitalTrendsChart({
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+            {error instanceof Error ? error.message : 'Failed to load trend data'}
           </Alert>
         )}
 
-        {!loading && !error && data.length === 0 && (
+        {!isLoading && !error && chartData.length === 0 && (
           <Alert severity="info">
             No trend data available yet. Check back in a few moments.
           </Alert>
         )}
 
-        {!loading && !error && data.length > 0 && (
+        {!isLoading && !error && chartData.length > 0 && (
           <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="time"
                 tick={{ fontSize: 12 }}
-                interval={Math.floor(data.length / 6)}
+                interval={Math.floor(chartData.length / 6)}
               />
               <YAxis yAxisId="left" label={{ value: 'HR (BPM) / SpO₂ (%)', angle: -90, position: 'insideLeft' }} />
               <YAxis
@@ -144,7 +109,7 @@ export function VitalTrendsChart({
                 label={{ value: 'BP (mmHg)', angle: 90, position: 'insideRight' }}
               />
               <Tooltip
-                formatter={(value: any) => (value ? value.toFixed(1) : '--')}
+                formatter={(value) => (typeof value === 'number' ? value.toFixed(1) : '--')}
                 labelFormatter={(label) => `Time: ${label}`}
               />
               <Legend />

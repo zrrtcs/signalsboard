@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, Chip, CircularProgress, IconButton, Tooltip } from '@mui/material';
-import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon, QrCode2 as QRIcon } from '@mui/icons-material';
+import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, Chip, CircularProgress, IconButton, Tooltip, Alert } from '@mui/material';
+import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon, QrCode2 as QRIcon, GitHub as GitHubIcon, NotificationsOff as NotificationsOffIcon, Notifications as NotificationsIcon } from '@mui/icons-material';
 import { useHospitalSignalR } from './hooks/useHospitalSignalR';
 import { useHospitalStore } from './store/hospitalStore';
 import { useAudioAlert } from './hooks/useAudioAlert';
 import { PatientGrid } from './components/PatientGrid';
 import { VitalInjectorPanel } from './components/VitalInjectorPanel';
 import { DashboardQRModal } from './components/DashboardQRModal';
+import { DemoScenarioSelector } from './components/DemoScenarioSelector';
 import { hospitalApi, mockPatients } from './services/hospitalApi';
 
 // Medical dashboard theme - optimized for TV displays
@@ -48,13 +49,17 @@ const theme = createTheme({
 });
 
 function App() {
-  const { connectionStatus } = useHospitalSignalR();
-  const { patients, setPatients } = useHospitalStore();
-  const { toggleGlobalMute } = useAudioAlert();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usingMockData, setUsingMockData] = useState(false);
   const [globalMuted, setGlobalMuted] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
+
+  // Pass notificationsEnabled to SignalR hook
+  const { connectionStatus } = useHospitalSignalR(notificationsEnabled);
+  const { patients, setPatients } = useHospitalStore();
+  const { toggleGlobalMute } = useAudioAlert();
 
   // Initialize global mute state from localStorage
   // Default: true (MUTED) - ensures audio doesn't surprise users on first load
@@ -63,6 +68,19 @@ function App() {
     setGlobalMuted(stored ? JSON.parse(stored) : true);
   }, []);
 
+  // Initialize notifications state from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('hospital:notifications-enabled');
+    setNotificationsEnabled(stored ? JSON.parse(stored) : false);
+  }, []);
+
+  const toggleNotifications = () => {
+    const newValue = !notificationsEnabled;
+    console.log('🔔 Notifications toggled:', { from: notificationsEnabled, to: newValue });
+    setNotificationsEnabled(newValue);
+    localStorage.setItem('hospital:notifications-enabled', JSON.stringify(newValue));
+  };
+
   // Load initial patient data
   useEffect(() => {
     const loadPatients = async () => {
@@ -70,21 +88,25 @@ function App() {
         setLoading(true);
         // Try to fetch from API, fallback to mock data
         const data = await hospitalApi.getPatients().catch(() => {
-          console.warn('API unavailable, using mock data');
+          console.warn('API timeout/unavailable - using mock data');
+          setUsingMockData(true);
           return mockPatients;
         });
 
         // Use mock data if API returns empty array
         if (data.length === 0) {
-          console.warn('API returned no patients, using mock data');
+          console.warn('API returned no patients - using mock data');
+          setUsingMockData(true);
           setPatients(mockPatients);
         } else {
+          setUsingMockData(false);
           setPatients(data);
         }
         setError(null);
       } catch (err) {
         console.error('Failed to load patients:', err);
-        setError('Failed to load patient data');
+        setError('Failed to load patient data - showing mock data');
+        setUsingMockData(true);
         // Use mock data as fallback
         setPatients(mockPatients);
       } finally {
@@ -127,6 +149,9 @@ function App() {
                 Hospital Vital Signs Dashboard
               </Typography>
 
+              {/* Demo Scenario Selector */}
+              <DemoScenarioSelector />
+
               {/* Dashboard QR Share Button */}
               <Tooltip title="Share dashboard QR code">
                 <IconButton
@@ -145,6 +170,27 @@ function App() {
                 </IconButton>
               </Tooltip>
 
+              {/* GitHub Repository Link */}
+              <Tooltip title="View source code on GitHub">
+                <IconButton
+                  component="a"
+                  href="https://github.com/zrrtcs/signalsboard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    color: '#ffffff',
+                    mr: 1,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      transform: 'scale(1.1)',
+                    },
+                  }}
+                >
+                  <GitHubIcon />
+                </IconButton>
+              </Tooltip>
+
               {/* Global Audio Mute Button */}
               <IconButton
                 onClick={() => {
@@ -153,7 +199,7 @@ function App() {
                 }}
                 sx={{
                   color: globalMuted ? '#f44336' : 'inherit',
-                  mr: 2,
+                  mr: 1,
                   transition: 'all 0.3s ease',
                   '&:hover': {
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -165,6 +211,23 @@ function App() {
                 {globalMuted ? <MuteIcon /> : <UnmuteIcon />}
               </IconButton>
 
+              {/* Notifications Toggle Button */}
+              <IconButton
+                onClick={toggleNotifications}
+                sx={{
+                  color: notificationsEnabled ? '#4caf50' : '#f44336',
+                  mr: 2,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    transform: 'scale(1.1)',
+                  },
+                }}
+                title={notificationsEnabled ? '🔔 Notifications: ON (browser alerts enabled)' : '🔕 Notifications: OFF (no browser alerts)'}
+              >
+                {notificationsEnabled ? <NotificationsIcon /> : <NotificationsOffIcon />}
+              </IconButton>
+
               <Chip
                 label={getConnectionLabel()}
                 color={getConnectionColor()}
@@ -174,6 +237,13 @@ function App() {
             </Toolbar>
           </Box>
         </AppBar>
+
+        {/* Mock Data Warning Banner */}
+        {usingMockData && (
+          <Alert severity="warning" sx={{ borderRadius: 0, mb: 2 }}>
+            ⚠️ <strong>Demo Mode:</strong> Using demonstration data. Live patient data currently unavailable (API request timed out).
+          </Alert>
+        )}
 
         <Box sx={{ p: 3, maxWidth: 1400, mx: 'auto', width: '100%' }}>
           {loading ? (

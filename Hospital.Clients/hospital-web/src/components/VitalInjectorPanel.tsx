@@ -19,6 +19,7 @@ import {
 import { Healing as HealingIcon } from '@mui/icons-material';
 import { useHospitalStore } from '../store/hospitalStore';
 import { hospitalApi } from '../services/hospitalApi';
+import { validateVitalSigns } from '../utils/vitalSignsValidation';
 import type { VitalSignsInjectionRequest } from '../types/hospital';
 
 /**
@@ -83,7 +84,7 @@ export function VitalInjectorPanel() {
     }));
   };
 
-  const handlePatientChange = (event: any) => {
+  const handlePatientChange = (event: { target: { value: string } }) => {
     setSelectedPatientId(event.target.value);
   };
 
@@ -142,57 +143,10 @@ export function VitalInjectorPanel() {
       return false;
     }
 
-    // At least one vital should be provided
-    const hasData = formData.heartRate || formData.spO2 || formData.bpSystolic || formData.bpDiastolic;
-    if (!hasData) {
-      setErrorMessage('Please enter at least one vital sign');
+    const result = validateVitalSigns(formData);
+    if (!result.valid) {
+      setErrorMessage(result.error);
       return false;
-    }
-
-    // Validate heart rate range (30-200 BPM)
-    if (formData.heartRate) {
-      const hr = parseInt(formData.heartRate, 10);
-      if (isNaN(hr) || hr < 30 || hr > 200) {
-        setErrorMessage('❌ Heart Rate must be between 30-200 BPM');
-        return false;
-      }
-    }
-
-    // Validate SpO2 range (0-100%)
-    if (formData.spO2) {
-      const spo2 = parseInt(formData.spO2, 10);
-      if (isNaN(spo2) || spo2 < 0 || spo2 > 100) {
-        setErrorMessage('❌ SpO₂ must be between 0-100%');
-        return false;
-      }
-    }
-
-    // Validate BP Systolic range (50-250 mmHg)
-    if (formData.bpSystolic) {
-      const bpSys = parseInt(formData.bpSystolic, 10);
-      if (isNaN(bpSys) || bpSys < 50 || bpSys > 250) {
-        setErrorMessage('❌ BP Systolic must be between 50-250 mmHg');
-        return false;
-      }
-    }
-
-    // Validate BP Diastolic range (30-150 mmHg)
-    if (formData.bpDiastolic) {
-      const bpDia = parseInt(formData.bpDiastolic, 10);
-      if (isNaN(bpDia) || bpDia < 30 || bpDia > 150) {
-        setErrorMessage('❌ BP Diastolic must be between 30-150 mmHg');
-        return false;
-      }
-    }
-
-    // Validate logical relationship: Systolic should be >= Diastolic
-    if (formData.bpSystolic && formData.bpDiastolic) {
-      const bpSys = parseInt(formData.bpSystolic, 10);
-      const bpDia = parseInt(formData.bpDiastolic, 10);
-      if (!isNaN(bpSys) && !isNaN(bpDia) && bpSys < bpDia) {
-        setErrorMessage('❌ BP Systolic must be ≥ Diastolic');
-        return false;
-      }
     }
 
     return true;
@@ -384,7 +338,7 @@ export function VitalInjectorPanel() {
                   <InputLabel>Select Vital</InputLabel>
                   <Select
                     value={criticalMode}
-                    onChange={(e) => setCriticalMode(e.target.value as any)}
+                    onChange={(e) => setCriticalMode(e.target.value as typeof criticalMode)}
                     label="Select Vital"
                     disabled={loading}
                   >
