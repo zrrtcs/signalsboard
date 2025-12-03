@@ -137,16 +137,18 @@ app.MapGet("/api/patients", async (HospitalDbContext db, string? wardId = null) 
 
     // LATERAL JOIN retrieves last 20 vitals per patient using index seek
     // Much faster than CTE+ROW_NUMBER() which scans all matching rows first
+    // NOTE: EF Core FromSql requires ALL entity columns with [Column("...")] snake_case names
     var allRecentVitals = await db.VitalSigns
         .FromSqlInterpolated($@"
-            SELECT v.*
+            SELECT v.id, v.patient_id, v.heart_rate, v.spo2,
+                   v.bp_systolic, v.bp_diastolic, v.temperature, v.recorded_at, v.recorded_by
             FROM unnest({patientIds.ToArray()}) AS pid
             CROSS JOIN LATERAL (
-                SELECT ""Id"", ""PatientId"", ""HeartRate"", ""SpO2"",
-                       ""BpSystolic"", ""BpDiastolic"", ""Temperature"", ""RecordedAt""
-                FROM public.""VitalSigns""
-                WHERE ""PatientId"" = pid
-                ORDER BY ""RecordedAt"" DESC
+                SELECT id, patient_id, heart_rate, spo2,
+                       bp_systolic, bp_diastolic, temperature, recorded_at, recorded_by
+                FROM public.vital_signs
+                WHERE patient_id = pid
+                ORDER BY recorded_at DESC
                 LIMIT 20
             ) v
         ")
