@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, Chip, CircularProgress, IconButton, Tooltip, Alert } from '@mui/material';
-import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon, QrCode2 as QRIcon, GitHub as GitHubIcon, NotificationsOff as NotificationsOffIcon, Notifications as NotificationsIcon } from '@mui/icons-material';
+import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon, QrCode2 as QRIcon, GitHub as GitHubIcon, NotificationsOff as NotificationsOffIcon, Notifications as NotificationsIcon, Terminal as TerminalIcon } from '@mui/icons-material';
 import { useHospitalSignalR } from './hooks/useHospitalSignalR';
 import { useHospitalStore } from './store/hospitalStore';
 import { useAudioAlert } from './hooks/useAudioAlert';
@@ -8,6 +8,7 @@ import { PatientGrid } from './components/PatientGrid';
 import { VitalInjectorPanel } from './components/VitalInjectorPanel';
 import { DashboardQRModal } from './components/DashboardQRModal';
 import { DemoScenarioSelector } from './components/DemoScenarioSelector';
+import { SignalRTerminal } from './components/SignalRTerminal';
 import { hospitalApi, mockPatients } from './services/hospitalApi';
 
 // Medical dashboard theme - optimized for TV displays
@@ -60,6 +61,8 @@ function App() {
   const { connectionStatus } = useHospitalSignalR(notificationsEnabled);
   const { patients, setPatients } = useHospitalStore();
   const { toggleGlobalMute } = useAudioAlert();
+  const showSignalRPanel = useHospitalStore(state => state.showSignalRPanel);
+  const toggleSignalRPanel = useHospitalStore(state => state.toggleSignalRPanel);
 
   // Initialize global mute state from localStorage
   // Default: true (MUTED) - ensures audio doesn't surprise users on first load
@@ -216,7 +219,7 @@ function App() {
                 onClick={toggleNotifications}
                 sx={{
                   color: notificationsEnabled ? '#4caf50' : '#f44336',
-                  mr: 2,
+                  mr: 1,
                   transition: 'all 0.3s ease',
                   '&:hover': {
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -227,6 +230,24 @@ function App() {
               >
                 {notificationsEnabled ? <NotificationsIcon /> : <NotificationsOffIcon />}
               </IconButton>
+
+              {/* SignalR Terminal Toggle - Proof for Recruiters */}
+              <Tooltip title="Show SignalR WebSocket Monitor (Proof of Real-time Communication)">
+                <IconButton
+                  onClick={toggleSignalRPanel}
+                  sx={{
+                    color: showSignalRPanel ? '#4caf50' : '#9c27b0',
+                    mr: 2,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                      transform: 'scale(1.1)',
+                    },
+                  }}
+                >
+                  <TerminalIcon />
+                </IconButton>
+              </Tooltip>
 
               <Chip
                 label={getConnectionLabel()}
@@ -269,6 +290,9 @@ function App() {
 
         {/* Dashboard QR Modal - Opens from toolbar button */}
         <DashboardQRModal open={qrModalOpen} onClose={() => setQrModalOpen(false)} />
+
+        {/* SignalR Terminal - Live WebSocket Message Monitor */}
+        {showSignalRPanel && <SignalRTerminal />}
       </Box>
     </ThemeProvider>
   );
