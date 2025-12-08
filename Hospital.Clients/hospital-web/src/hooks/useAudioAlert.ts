@@ -273,15 +273,14 @@ export function useAudioAlert() {
   }, [criticalPatientIds, playEmergencyAlert, stopEmergencyAlert]);
 
   // Monitor mute changes and stop audio for muted patients
+  // Note: This effect intentionally has an empty deps array because it only reads from refs
+  // Refs don't trigger re-renders, so we rely on the effect above (criticalPatientIds) to handle changes
+  // This is a cleanup safety net, not the primary audio control logic
   useEffect(() => {
-    if (playingPatientsRef.current.size > 0) {
-      // Check each playing patient and stop if they're now muted
+    const checkMutedPlayers = () => {
       playingPatientsRef.current.forEach(patientId => {
-        const isPatientMuted = mutedPatientsRef.current.has(patientId);
-        const isGlobalMuted = globalMuteRef.current;
-
-        // If patient is muted or global mute is on, stop their audio
-        if (isPatientMuted || isGlobalMuted) {
+        const isMuted = mutedPatientsRef.current.has(patientId) || globalMuteRef.current;
+        if (isMuted) {
           const audioElement = audioElementsRef.current.get(patientId);
           if (audioElement && !audioElement.paused) {
             audioElement.pause();
@@ -290,8 +289,13 @@ export function useAudioAlert() {
           }
         }
       });
+    };
+
+    // Only run check if there are playing patients
+    if (playingPatientsRef.current.size > 0) {
+      checkMutedPlayers();
     }
-  });
+  }, [criticalPatientIds]); // Re-check when critical patients change
 
   return {
     togglePatientMute,
