@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, Chip, CircularProgress, IconButton, Tooltip, Alert } from '@mui/material';
-import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon, QrCode2 as QRIcon, GitHub as GitHubIcon, NotificationsOff as NotificationsOffIcon, Notifications as NotificationsIcon, Terminal as TerminalIcon } from '@mui/icons-material';
+import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, Chip, CircularProgress, IconButton, Tooltip, Alert, Menu, MenuItem, ListItemIcon, ListItemText, Divider, useMediaQuery } from '@mui/material';
+import { SignalCellularAlt as SignalIcon, VolumeOff as MuteIcon, VolumeUp as UnmuteIcon, QrCode2 as QRIcon, GitHub as GitHubIcon, NotificationsOff as NotificationsOffIcon, Notifications as NotificationsIcon, Terminal as TerminalIcon, MoreVert as MoreIcon, Science as ScienceIcon } from '@mui/icons-material';
 import { useHospitalSignalR } from './hooks/useHospitalSignalR';
 import { useHospitalStore } from './store/hospitalStore';
 import { useAudioAlert } from './hooks/useAudioAlert';
@@ -56,6 +56,10 @@ function App() {
   const [globalMuted, setGlobalMuted] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [actionBarMenuAnchor, setActionBarMenuAnchor] = useState<null | HTMLElement>(null);
+
+  // Responsive breakpoint - collapse toolbar at < 1024px (tablet/mobile)
+  const isCompact = useMediaQuery('(max-width: 1024px)');
 
   // Pass notificationsEnabled to SignalR hook
   const { connectionStatus } = useHospitalSignalR(notificationsEnabled);
@@ -63,6 +67,15 @@ function App() {
   const { toggleGlobalMute } = useAudioAlert();
   const showSignalRPanel = useHospitalStore(state => state.showSignalRPanel);
   const toggleSignalRPanel = useHospitalStore(state => state.toggleSignalRPanel);
+  const [showVitalInjector, setShowVitalInjector] = useState(false);
+
+  // Overflow menu handlers
+  const handleActionBarMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setActionBarMenuAnchor(event.currentTarget);
+  };
+  const handleActionBarMenuClose = () => {
+    setActionBarMenuAnchor(null);
+  };
 
   // Initialize global mute state from localStorage
   // Default: true (MUTED) - ensures audio doesn't surprise users on first load
@@ -79,7 +92,9 @@ function App() {
 
   const toggleNotifications = () => {
     const newValue = !notificationsEnabled;
-    console.log('🔔 Notifications toggled:', { from: notificationsEnabled, to: newValue });
+    if (import.meta.env.DEV) {
+      console.log('🔔 Notifications toggled:', { from: notificationsEnabled, to: newValue });
+    }
     setNotificationsEnabled(newValue);
     localStorage.setItem('hospital:notifications-enabled', JSON.stringify(newValue));
   };
@@ -147,74 +162,120 @@ function App() {
         <AppBar position="sticky" elevation={2} sx={{ width: '100%' }}>
           <Box sx={{ maxWidth: 1400, mx: 'auto', width: '100%', px: 3 }}>
             <Toolbar sx={{ px: 0 }}>
-              <SignalIcon sx={{ mr: 2 }} />
-              <Typography variant="h5" component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
-                Hospital Vital Signs Dashboard
+              <SignalIcon sx={{ mr: { xs: 1, sm: 2 } }} />
+              <Typography
+                variant="h5"
+                component="div"
+                sx={{
+                  flexGrow: 1,
+                  fontWeight: 600,
+                  fontSize: { xs: '1.15rem', sm: '1.35rem', md: '1.5rem' },
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {isCompact ? 'Signalsboard' : 'Hospital Vital Signs Dashboard'}
               </Typography>
 
-              {/* Demo Scenario Selector */}
-              <DemoScenarioSelector />
+              {/* === DESKTOP: Show all actions inline === */}
+              {!isCompact && (
+                <>
+                  <DemoScenarioSelector />
 
-              {/* Dashboard QR Share Button */}
-              <Tooltip title="Share dashboard QR code">
-                <IconButton
-                  onClick={() => setQrModalOpen(true)}
-                  sx={{
-                    color: '#ff9800',
-                    mr: 1,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      backgroundColor: 'rgba(255, 152, 0, 0.1)',
-                      transform: 'scale(1.1)',
-                    },
-                  }}
-                >
-                  <QRIcon />
-                </IconButton>
-              </Tooltip>
+                  <Tooltip title="Inject test vitals">
+                    <IconButton
+                      onClick={() => setShowVitalInjector(!showVitalInjector)}
+                      sx={{
+                        color: showVitalInjector ? '#4caf50' : '#00bcd4',
+                        mr: 1,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: 'rgba(0, 188, 212, 0.1)',
+                          transform: 'scale(1.1)',
+                        },
+                      }}
+                    >
+                      <ScienceIcon />
+                    </IconButton>
+                  </Tooltip>
 
-              {/* GitHub Repository Link */}
-              <Tooltip title="View source code on GitHub">
-                <IconButton
-                  component="a"
-                  href="https://github.com/zrrtcs/signalsboard"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{
-                    color: '#ffffff',
-                    mr: 1,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      transform: 'scale(1.1)',
-                    },
-                  }}
-                >
-                  <GitHubIcon />
-                </IconButton>
-              </Tooltip>
+                  <Tooltip title="Share dashboard QR code">
+                    <IconButton
+                      onClick={() => setQrModalOpen(true)}
+                      sx={{
+                        color: '#ff9800',
+                        mr: 1,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                          transform: 'scale(1.1)',
+                        },
+                      }}
+                    >
+                      <QRIcon />
+                    </IconButton>
+                  </Tooltip>
 
-              {/* Global Audio Mute Button */}
+                  <Tooltip title="View source on GitHub">
+                    <IconButton
+                      component="a"
+                      href="https://github.com/zrrtcs/signalsboard"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{
+                        color: '#ffffff',
+                        mr: 1,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          transform: 'scale(1.1)',
+                        },
+                      }}
+                    >
+                      <GitHubIcon />
+                    </IconButton>
+                  </Tooltip>
+
+                  <Tooltip title="SignalR WebSocket Monitor">
+                    <IconButton
+                      onClick={toggleSignalRPanel}
+                      sx={{
+                        color: showSignalRPanel ? '#4caf50' : '#9c27b0',
+                        mr: 1,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                          transform: 'scale(1.1)',
+                        },
+                      }}
+                    >
+                      <TerminalIcon />
+                    </IconButton>
+                  </Tooltip>
+                </>
+              )}
+
+              {/* === ALWAYS VISIBLE: Critical controls === */}
               <IconButton
                 onClick={() => {
                   toggleGlobalMute();
                   setGlobalMuted(!globalMuted);
                 }}
                 sx={{
-                  color: globalMuted ? '#f44336' : 'inherit',
-                  mr: 1,
+                  color: globalMuted ? '#f44336' : '#4caf50',
+                  mr: 0.5,
                   transition: 'all 0.3s ease',
                   '&:hover': {
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
                     transform: 'scale(1.1)',
                   },
                 }}
-                title={globalMuted ? '🔇 Global Mute: ON (all alerts silenced)' : '🔊 Global Mute: OFF (alerts enabled)'}
+                title={globalMuted ? 'Audio muted' : 'Audio enabled'}
               >
                 {globalMuted ? <MuteIcon /> : <UnmuteIcon />}
               </IconButton>
 
-              {/* Notifications Toggle Button */}
               <IconButton
                 onClick={toggleNotifications}
                 sx={{
@@ -226,34 +287,103 @@ function App() {
                     transform: 'scale(1.1)',
                   },
                 }}
-                title={notificationsEnabled ? '🔔 Notifications: ON (browser alerts enabled)' : '🔕 Notifications: OFF (no browser alerts)'}
+                title={notificationsEnabled ? 'Notifications on' : 'Notifications off'}
               >
                 {notificationsEnabled ? <NotificationsIcon /> : <NotificationsOffIcon />}
               </IconButton>
 
-              {/* SignalR Terminal Toggle - Proof for Recruiters */}
-              <Tooltip title="Show SignalR WebSocket Monitor (Proof of Real-time Communication)">
-                <IconButton
-                  onClick={toggleSignalRPanel}
-                  sx={{
-                    color: showSignalRPanel ? '#4caf50' : '#9c27b0',
-                    mr: 2,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      backgroundColor: 'rgba(156, 39, 176, 0.1)',
-                      transform: 'scale(1.1)',
-                    },
-                  }}
-                >
-                  <TerminalIcon />
-                </IconButton>
-              </Tooltip>
+              {/* === COMPACT: Overflow menu === */}
+              {isCompact && (
+                <>
+                  <IconButton
+                    onClick={handleActionBarMenuOpen}
+                    sx={{ color: '#ffffff', mr: 1 }}
+                  >
+                    <MoreIcon />
+                  </IconButton>
+                  <Menu
+                    anchorEl={actionBarMenuAnchor}
+                    open={Boolean(actionBarMenuAnchor)}
+                    onClose={handleActionBarMenuClose}
+                    slotProps={{
+                      paper: { sx: { minWidth: 280, bgcolor: 'background.paper' } }
+                    }}
+                  >
+                    {/* Quick Settings - explain the toolbar icons */}
+                    <MenuItem onClick={() => { toggleGlobalMute(); setGlobalMuted(!globalMuted); handleActionBarMenuClose(); }}>
+                      <ListItemIcon>{globalMuted ? <MuteIcon sx={{ color: '#f44336' }} /> : <UnmuteIcon sx={{ color: '#4caf50' }} />}</ListItemIcon>
+                      <ListItemText
+                        primary={globalMuted ? 'Audio Muted' : 'Audio Enabled'}
+                        secondary="Toggle alert sounds for critical vitals"
+                        slotProps={{ secondary: { sx: { color: 'rgba(255,255,255,0.6)' } } }}
+                      />
+                    </MenuItem>
+                    <MenuItem onClick={() => { toggleNotifications(); handleActionBarMenuClose(); }}>
+                      <ListItemIcon>{notificationsEnabled ? <NotificationsIcon sx={{ color: '#4caf50' }} /> : <NotificationsOffIcon sx={{ color: '#f44336' }} />}</ListItemIcon>
+                      <ListItemText
+                        primary={notificationsEnabled ? 'Notifications On' : 'Notifications Off'}
+                        secondary="Browser push alerts for critical patients"
+                        slotProps={{ secondary: { sx: { color: 'rgba(255,255,255,0.6)' } } }}
+                      />
+                    </MenuItem>
+                    <MenuItem disabled>
+                      <ListItemIcon><SignalIcon sx={{ color: getConnectionColor() === 'success' ? '#4caf50' : getConnectionColor() === 'error' ? '#f44336' : '#ff9800' }} /></ListItemIcon>
+                      <ListItemText
+                        primary={`Status: ${getConnectionLabel()}`}
+                        secondary="Real-time SignalR WebSocket connection"
+                        slotProps={{ secondary: { sx: { color: 'rgba(255,255,255,0.6)' } } }}
+                      />
+                    </MenuItem>
+                    <Divider />
+                    {/* Tools */}
+                    <MenuItem onClick={() => { setShowVitalInjector(!showVitalInjector); handleActionBarMenuClose(); }}>
+                      <ListItemIcon><ScienceIcon sx={{ color: showVitalInjector ? '#4caf50' : '#00bcd4' }} /></ListItemIcon>
+                      <ListItemText
+                        primary="Inject Vitals"
+                        secondary="Send test vital signs to patients"
+                        slotProps={{ secondary: { sx: { color: 'rgba(255,255,255,0.6)' } } }}
+                      />
+                    </MenuItem>
+                    <MenuItem onClick={() => { toggleSignalRPanel(); handleActionBarMenuClose(); }}>
+                      <ListItemIcon><TerminalIcon sx={{ color: showSignalRPanel ? '#4caf50' : '#9c27b0' }} /></ListItemIcon>
+                      <ListItemText
+                        primary="SignalR Monitor"
+                        secondary="View real-time WebSocket messages"
+                        slotProps={{ secondary: { sx: { color: 'rgba(255,255,255,0.6)' } } }}
+                      />
+                    </MenuItem>
+                    <Divider />
+                    {/* Share & Links */}
+                    <MenuItem onClick={() => { setQrModalOpen(true); handleActionBarMenuClose(); }}>
+                      <ListItemIcon><QRIcon sx={{ color: '#ff9800' }} /></ListItemIcon>
+                      <ListItemText
+                        primary="Share QR Code"
+                        secondary="Scan to open on another device"
+                        slotProps={{ secondary: { sx: { color: 'rgba(255,255,255,0.6)' } } }}
+                      />
+                    </MenuItem>
+                    <MenuItem
+                      component="a"
+                      href="https://github.com/zrrtcs/signalsboard"
+                      target="_blank"
+                      onClick={handleActionBarMenuClose}
+                    >
+                      <ListItemIcon><GitHubIcon /></ListItemIcon>
+                      <ListItemText
+                        primary="View on GitHub"
+                        secondary="Browse source code & docs"
+                        slotProps={{ secondary: { sx: { color: 'rgba(255,255,255,0.6)' } } }}
+                      />
+                    </MenuItem>
+                  </Menu>
+                </>
+              )}
 
               <Chip
-                label={getConnectionLabel()}
+                label={isCompact ? (connectionStatus === 'connected' ? '●' : '✕') : getConnectionLabel()}
                 color={getConnectionColor()}
-                size="medium"
-                sx={{ fontWeight: 600 }}
+                size={isCompact ? 'small' : 'medium'}
+                sx={{ fontWeight: 600, minWidth: isCompact ? 'auto' : 80 }}
               />
             </Toolbar>
           </Box>
@@ -285,8 +415,8 @@ function App() {
           )}
         </Box>
 
-        {/* Vital Injector Testing Tool */}
-        <VitalInjectorPanel />
+        {/* Vital Injector Testing Tool - Toggle from toolbar */}
+        {showVitalInjector && <VitalInjectorPanel />}
 
         {/* Dashboard QR Modal - Opens from toolbar button */}
         <DashboardQRModal open={qrModalOpen} onClose={() => setQrModalOpen(false)} />

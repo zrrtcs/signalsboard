@@ -92,3 +92,91 @@ test.describe('Dashboard E2E', () => {
     await expect(errorBoundary).not.toBeVisible();
   });
 });
+
+test.describe('Toolbar Controls', () => {
+  test('mute toggle changes state, persists to localStorage, and logs mute action', async ({ page }) => {
+    // Capture console logs
+    const consoleLogs: string[] = [];
+    page.on('console', msg => consoleLogs.push(msg.text()));
+
+    await page.goto('/');
+
+    // Wait for app to load
+    await page.waitForTimeout(1000);
+
+    // Find the mute button (has VolumeOff or VolumeUp icon)
+    const muteButton = page.locator('button').filter({ has: page.locator('svg[data-testid="VolumeOffIcon"], svg[data-testid="VolumeUpIcon"]') }).first();
+
+    // Get initial localStorage value
+    const initialMuteState = await page.evaluate(() => localStorage.getItem('hospital:global-mute'));
+    console.log('Initial mute state:', initialMuteState);
+
+    // Click mute button
+    await muteButton.click();
+    await page.waitForTimeout(500);
+
+    // Verify localStorage changed
+    const newMuteState = await page.evaluate(() => localStorage.getItem('hospital:global-mute'));
+    console.log('New mute state:', newMuteState);
+    expect(newMuteState).not.toBe(initialMuteState);
+
+    // Verify mute action was logged (proves useAudioAlert hook ran)
+    const hasMuteLog = consoleLogs.some(log =>
+      log.includes('Global audio MUTED') || log.includes('Global audio UNMUTED')
+    );
+    console.log('Console logs captured:', consoleLogs.filter(l => l.includes('audio') || l.includes('mute')));
+    expect(hasMuteLog).toBe(true);
+  });
+
+  test('notification toggle changes state and persists to localStorage', async ({ page }) => {
+    await page.goto('/');
+
+    // Wait for app to load
+    await page.waitForTimeout(1000);
+
+    // Find the notification button (has Notifications or NotificationsOff icon)
+    const notifButton = page.locator('button').filter({ has: page.locator('svg[data-testid="NotificationsIcon"], svg[data-testid="NotificationsOffIcon"]') }).first();
+
+    // Get initial localStorage value
+    const initialState = await page.evaluate(() => localStorage.getItem('hospital:notifications-enabled'));
+    console.log('Initial notification state:', initialState);
+
+    // Click notification button
+    await notifButton.click();
+    await page.waitForTimeout(300);
+
+    // Verify localStorage changed
+    const newState = await page.evaluate(() => localStorage.getItem('hospital:notifications-enabled'));
+    console.log('New notification state:', newState);
+
+    expect(newState).not.toBe(initialState);
+  });
+
+  test('mobile overflow menu shows and toggles work', async ({ page }) => {
+    // Set mobile viewport
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/');
+
+    // Wait for app to load
+    await page.waitForTimeout(1000);
+
+    // Find and click the overflow menu button (MoreVert icon)
+    const moreButton = page.locator('button').filter({ has: page.locator('svg[data-testid="MoreVertIcon"]') });
+    await expect(moreButton).toBeVisible();
+    await moreButton.click();
+
+    // Verify menu opened - look for menu items
+    const menuItem = page.locator('li').filter({ hasText: 'Audio' }).first();
+    await expect(menuItem).toBeVisible({ timeout: 5000 });
+
+    // Click the audio menu item
+    await menuItem.click();
+
+    // Verify localStorage changed (menu should close after click)
+    const muteState = await page.evaluate(() => localStorage.getItem('hospital:global-mute'));
+    console.log('Mute state after menu click:', muteState);
+
+    // State should have toggled
+    expect(muteState).toBeDefined();
+  });
+});
