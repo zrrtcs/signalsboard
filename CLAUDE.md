@@ -6,7 +6,7 @@ Production-ready demo: **Hospital Patient-Care Dashboard** with **realtime Signa
 
 * Zero-touch TV mode: readable at 2–5 m, resilient to flaky networks.
 * Show skills in **.NET + SignalR + React + TypeScript**.
-* Easy deploy: **Azure App Service** (API) + optional **GitHub Pages** (web).
+* Easy deploy: **Azure Container Apps** (API + Frontend) with free tier.
 
 ## Architecture (choice A: recommended)
 
@@ -15,9 +15,9 @@ Production-ready demo: **Hospital Patient-Care Dashboard** with **realtime Signa
 * **Contracts**: Swagger/OpenAPI → generate TS client (NSwag).
 * **Hosting**:
 
-  * API: Azure App Service (free tier OK).
-  * Web: GitHub Pages or same App Service (static files).
-* **Why**: Pages is static; SignalR needs a backend → decouple UI from API.
+  * API + Web: Azure Container Apps (free consumption tier).
+  * Database: Supabase PostgreSQL (free tier).
+* **Why**: Container Apps serves both API and static frontend from single container.
 
 ```
 Signalsboard/
@@ -211,7 +211,7 @@ interface RootState {
 
 * `ci.yml`: build/test API + Web, run unit tests, build Web.
 * `pages.yml`: build Web and deploy `dist/` to GitHub Pages (set Vite `base`).
-* `azure-webapp.yml`: build/publish API to Azure App Service.
+* `deploy-azure.yml`: build Docker image, push to GHCR, deploy to Azure Container Apps.
 
 8. **README badges + demo**
 
@@ -243,17 +243,17 @@ If hosting Web on Pages:
 
 ## Deploy
 
-### API → Azure App Service
+### Azure Container Apps (Recommended)
 
-* Create App Service (Free F1).
-* Deployment Center → connect GitHub repo → .NET build → deploy.
-* Get URL: `https://<app>.azurewebsites.net`.
+* Push to `dev` or `master` branch triggers `deploy-azure.yml`
+* Docker image built and pushed to GitHub Container Registry (GHCR)
+* Deployed to Azure Container Apps (free consumption tier)
+* Live URL: `https://zrrtcs.github.io/portfolio/signalsboard-azure`
 
-### Web → GitHub Pages
+### Database
 
-* Enable Pages in repo settings.
-* Use `pages.yml` to build and publish `/src/Web/dist`.
-* Point env vars to Azure API.
+* Supabase PostgreSQL (free tier)
+* Connection via Session Pooler for IPv4 compatibility
 
 ---
 
