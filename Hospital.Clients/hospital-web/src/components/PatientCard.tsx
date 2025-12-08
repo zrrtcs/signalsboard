@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Card, CardContent, Typography, Box, Chip, Stack, IconButton } from '@mui/material';
 import {
   Favorite as HeartIcon,
@@ -22,7 +22,7 @@ interface PatientCardProps {
   onClick?: () => void;
 }
 
-export function PatientCard({ patient, onClick }: PatientCardProps) {
+export const PatientCard = memo(function PatientCard({ patient, onClick }: PatientCardProps) {
   const [togglingInjection, setTogglingInjection] = useState(false);
   const [showTrends, setShowTrends] = useState(false);
   const [showNurseModal, setShowNurseModal] = useState(false);
@@ -322,4 +322,4 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
     </Card>
     </>
   );
-}
+});

@@ -18,6 +18,7 @@ export function useHospitalSignalR(notificationsEnabled: boolean = false) {
   const addAlert = useHospitalStore(state => state.addAlert);
   const setConnectionStatus = useHospitalStore(state => state.setConnectionStatus);
   const connectionStatus = useHospitalStore(state => state.connectionStatus);
+  const addSignalRLog = useHospitalStore(state => state.addSignalRLog);
 
   useEffect(() => {
     // Skip if already connected or connecting
@@ -70,11 +71,37 @@ export function useHospitalSignalR(notificationsEnabled: boolean = false) {
     connection.on('ReceiveVitalUpdate', (update: VitalSignsUpdate) => {
       console.log('📊 Vital update:', update);
       updatePatientVitals(update);
+
+      // Log to terminal panel
+      addSignalRLog({
+        eventType: 'VitalUpdate',
+        patientId: update.patientId,
+        patientName: update.patientName,
+        data: {
+          heartRate: update.heartRate,
+          spO2: update.spO2,
+          bpSystolic: update.bpSystolic,
+          bpDiastolic: update.bpDiastolic,
+          alertSeverity: update.alertSeverity,
+        },
+      });
     });
 
     connection.on('ReceiveAlert', (alert: AlertNotification) => {
       console.log('🚨 Alert:', alert);
       addAlert(alert);
+
+      // Log to terminal panel
+      addSignalRLog({
+        eventType: 'Alert',
+        patientId: alert.patientId,
+        patientName: alert.patientName,
+        data: {
+          alertType: alert.alertType,
+          severity: alert.severity,
+          message: alert.message,
+        },
+      });
 
       // Browser notification for critical alerts (only if user enabled notifications)
       if (notificationsEnabled && alert.severity === 'Critical' && Notification.permission === 'granted') {
@@ -89,29 +116,61 @@ export function useHospitalSignalR(notificationsEnabled: boolean = false) {
       console.log('💉 Injection mode change:', change);
       // Update Zustand store with new injection mode state
       useHospitalStore.getState().toggleInjectionMode(change.patientId, change.injectionModeEnabled);
+
+      // Log to terminal panel
+      addSignalRLog({
+        eventType: 'InjectionMode',
+        patientId: change.patientId,
+        patientName: change.patientName,
+        data: {
+          enabled: change.injectionModeEnabled,
+        },
+      });
     });
 
     connection.on('ReceiveNurseAttendingChange', (change: NurseAttendingChange) => {
       console.log('👨‍⚕️ Nurse attending change:', change);
       // Update Zustand store with new nurse attending state
       useHospitalStore.getState().setNurseAttending(change.nurseAttending ? change.patientId : undefined);
+
+      // Log to terminal panel
+      addSignalRLog({
+        eventType: 'NurseAttending',
+        patientId: change.patientId,
+        patientName: change.patientName,
+        data: {
+          attending: change.nurseAttending,
+        },
+      });
     });
 
     // Connection lifecycle events
     connection.onreconnecting(() => {
       console.log('🔄 Reconnecting...');
       setConnectionStatus('reconnecting');
+      addSignalRLog({
+        eventType: 'Connection',
+        data: { status: 'reconnecting' },
+      });
     });
 
     connection.onreconnected(() => {
       console.log('✅ Reconnected automatically');
       setConnectionStatus('connected');
       reconnectAttemptsRef.current = 0;
+      addSignalRLog({
+        eventType: 'Connection',
+        data: { status: 'reconnected' },
+      });
     });
 
     connection.onclose((error) => {
       console.error('❌ Connection closed:', error);
       setConnectionStatus('disconnected');
+      addSignalRLog({
+        eventType: 'Connection',
+        data: { status: 'disconnected', error: error?.message },
+      });
     });
 
     // Request notification permission
@@ -127,7 +186,7 @@ export function useHospitalSignalR(notificationsEnabled: boolean = false) {
         connection.stop();
       }
     };
-  }, [notificationsEnabled]);
+  }, [notificationsEnabled, updatePatientVitals, addAlert, setConnectionStatus, addSignalRLog]);
 
   return {
     connectionStatus,

@@ -2,6 +2,32 @@ import { create } from 'zustand';
 import type { Patient, Alert, ConnectionStatus, VitalSignsUpdate, AlertNotification, PatientStatus } from '../types/hospital';
 
 /**
+ * SignalR Debug Log Entry
+ * Tracks all SignalR events for debugging and proof of communication
+ */
+export interface SignalRLogEntry {
+  id: string;
+  timestamp: Date;
+  eventType: 'VitalUpdate' | 'Alert' | 'InjectionMode' | 'NurseAttending' | 'Connection';
+  patientId?: string;
+  patientName?: string;
+  data: Record<string, unknown>;
+}
+
+export interface SignalRStats {
+  totalMessages: number;
+  messagesPerMinute: number;
+  lastUpdateTime?: Date;
+  eventCounts: {
+    VitalUpdate: number;
+    Alert: number;
+    InjectionMode: number;
+    NurseAttending: number;
+    Connection: number;
+  };
+}
+
+/**
  * Hospital Dashboard State Management
  * Uses Zustand for lightweight, performant state management
  */
@@ -16,6 +42,11 @@ interface HospitalState {
   // SignalR connection status
   connectionStatus: ConnectionStatus;
   lastHeartbeat?: Date;
+
+  // SignalR Debug Logging (for recruiter proof)
+  signalRLogs: SignalRLogEntry[];
+  signalRStats: SignalRStats;
+  showSignalRPanel: boolean;
 
   // UI State
   selectedWardId?: string;
@@ -38,7 +69,15 @@ interface HospitalState {
   setNurseAttending: (patientId?: string) => void;
   storeOriginalMuteState: (patientId: string, isMuted: boolean) => void;
   getOriginalMuteState: (patientId: string) => boolean | undefined;
+
+  // SignalR Debug Actions
+  addSignalRLog: (entry: Omit<SignalRLogEntry, 'id' | 'timestamp'>) => void;
+  toggleSignalRPanel: () => void;
+  clearSignalRLogs: () => void;
 }
+
+// Track message timestamps for rate calculation
+let messageTimestamps: number[] = [];
 
 export const useHospitalStore = create<HospitalState>((set, get) => ({
   patients: new Map(),
@@ -47,6 +86,21 @@ export const useHospitalStore = create<HospitalState>((set, get) => ({
   showAlertsOnly: false,
   injectionModeEnabled: new Map(),
   patientMutesBeforeNurseAttending: new Map(),
+
+  // SignalR Debug State
+  signalRLogs: [],
+  signalRStats: {
+    totalMessages: 0,
+    messagesPerMinute: 0,
+    eventCounts: {
+      VitalUpdate: 0,
+      Alert: 0,
+      InjectionMode: 0,
+      NurseAttending: 0,
+      Connection: 0,
+    },
+  },
+  showSignalRPanel: false,
 
   setPatients: (patients) => set({
     patients: new Map(patients.map(p => [p.id, p]))
@@ -153,6 +207,55 @@ export const useHospitalStore = create<HospitalState>((set, get) => ({
   getOriginalMuteState: (patientId) => {
     return get().patientMutesBeforeNurseAttending.get(patientId);
   },
+
+  // SignalR Debug Actions
+  addSignalRLog: (entry) => set((state) => {
+    const now = Date.now();
+    messageTimestamps.push(now);
+    // Keep only timestamps from last 60 seconds
+    messageTimestamps = messageTimestamps.filter(t => now - t < 60000);
+
+    const newLog: SignalRLogEntry = {
+      ...entry,
+      id: crypto.randomUUID(),
+      timestamp: new Date(),
+    };
+
+    const newStats = {
+      ...state.signalRStats,
+      totalMessages: state.signalRStats.totalMessages + 1,
+      messagesPerMinute: messageTimestamps.length,
+      lastUpdateTime: new Date(),
+      eventCounts: {
+        ...state.signalRStats.eventCounts,
+        [entry.eventType]: state.signalRStats.eventCounts[entry.eventType] + 1,
+      },
+    };
+
+    return {
+      signalRLogs: [newLog, ...state.signalRLogs].slice(0, 100), // Keep last 100
+      signalRStats: newStats,
+    };
+  }),
+
+  toggleSignalRPanel: () => set((state) => ({
+    showSignalRPanel: !state.showSignalRPanel,
+  })),
+
+  clearSignalRLogs: () => set({
+    signalRLogs: [],
+    signalRStats: {
+      totalMessages: 0,
+      messagesPerMinute: 0,
+      eventCounts: {
+        VitalUpdate: 0,
+        Alert: 0,
+        InjectionMode: 0,
+        NurseAttending: 0,
+        Connection: 0,
+      },
+    },
+  }),
 }));
 
 /**

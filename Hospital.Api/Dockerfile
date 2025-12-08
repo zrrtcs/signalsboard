@@ -1,7 +1,17 @@
-# Use Debian-based runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim AS runtime
+# =============================================================================
+# STAGE 1: Build React Frontend
+# =============================================================================
+FROM node:20-slim AS frontend-build
+WORKDIR /frontend
+COPY Hospital.Clients/hospital-web/package*.json ./
+RUN npm ci --silent
+COPY Hospital.Clients/hospital-web/ ./
+RUN npm run build
 
-# Use Debian-based SDK for building
+# =============================================================================
+# STAGE 2: Build .NET Backend
+# =============================================================================
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim AS runtime
 FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim AS build
 
 # Build configuration arguments
@@ -38,6 +48,9 @@ RUN curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg
 
 # Copy published application
 COPY --from=build /app/publish .
+
+# Copy frontend assets to wwwroot
+COPY --from=frontend-build /frontend/dist ./wwwroot
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos "" --uid 1000 appuser && chown -R appuser /app
